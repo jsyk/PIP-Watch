@@ -1,0 +1,17 @@
+
+    boardname.GTL Top Layer
+    boardname.GBL Bottom Layer
+
+    boardname.GTS Top Soldermask
+    boardname.GBS Bottom Soldermask
+
+    boardname.GTO Top Silkscreen
+    boardname.GBO Bottom Silkscreen --- normally not used
+
+    boardname.GKO Board Outline
+
+    boardname.G2L only if you're uploading a four layer board
+    boardname.G3L only if you're uploading a four layer board
+
+    boardname.XLN Drills
+

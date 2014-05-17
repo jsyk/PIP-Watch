@@ -1,0 +1,129 @@
+Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Čt 15. květen 2014, 20:53:15 CEST
+
+BeginCmp
+TimeStamp = /53750BBA;
+Reference = C1;
+ValeurCmp = 4u7/6V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /53750BEB;
+Reference = C2;
+ValeurCmp = 2u2/50V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /53750C57;
+Reference = C3;
+ValeurCmp = 1u/50V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /53750C1C;
+Reference = C4;
+ValeurCmp = 2u2/50V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E993F;
+Reference = C5;
+ValeurCmp = 1u/25V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E994E;
+Reference = C6;
+ValeurCmp = 1u/25V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E9B1C;
+Reference = C7;
+ValeurCmp = 1u/6V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E9C10;
+Reference = C8;
+ValeurCmp = 1u/25V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E9C29;
+Reference = C9;
+ValeurCmp = 1u/25V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E9C38;
+Reference = C10;
+ValeurCmp = 1u/25V;
+IdModule  = CP_5x11mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /537503E8;
+Reference = D1;
+ValeurCmp = BAT30SWFILM;
+IdModule  = SOT323;
+EndCmp
+
+BeginCmp
+TimeStamp = /535EA060;
+Reference = D3;
+ValeurCmp = MBR0530;
+IdModule  = sod123;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E9F40;
+Reference = L1;
+ValeurCmp = 22u;
+IdModule  = CP_16x25mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /537517AD;
+Reference = P1;
+ValeurCmp = MOLEX_FPC_RCPT_24POS;
+IdModule  = MOLEX_FPC_RCPT_24POS_0_5MM;
+EndCmp
+
+BeginCmp
+TimeStamp = /535EA611;
+Reference = P2;
+ValeurCmp = CONN_2;
+IdModule  = PIN_ARRAY_2X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /53750646;
+Reference = P3;
+ValeurCmp = CONN_12X2;
+IdModule  = pin_array_12x2;
+EndCmp
+
+BeginCmp
+TimeStamp = /53750A17;
+Reference = Q1;
+ValeurCmp = Si1304BDL;
+IdModule  = sc70;
+EndCmp
+
+BeginCmp
+TimeStamp = /535E9E82;
+Reference = R1;
+ValeurCmp = 3R;
+IdModule  = SM0805;
+EndCmp
+
+EndListe
