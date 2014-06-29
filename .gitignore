@@ -1,3 +1,7 @@
 *.bak
 *~
 *.kicad_pcb-bak
+*.o
+*.bin
+*.elf
+*.lst
