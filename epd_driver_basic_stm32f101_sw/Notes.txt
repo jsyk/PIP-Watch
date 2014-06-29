@@ -1,0 +1,3 @@
+st-flash write stm32test_flash.bin 0x08000000
+
+openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg
