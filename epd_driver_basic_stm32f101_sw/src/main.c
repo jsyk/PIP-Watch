@@ -38,12 +38,15 @@
 #include "gpio.h"
 #include "stm32f10x_spi.h"
 #include "epd_imgs.h"
+#include "fontgen.h"
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
+
+extern font_t font_FreeUniversal_Book;
 
 #define DELAY       1000000
 
@@ -160,8 +163,8 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x01);
-    epd_sendbyte(EPD_DATA,      0xB3);
-    epd_sendbyte(EPD_DATA,      0x00);
+    epd_sendbyte(EPD_DATA,      0xB3);      // 179+1 horizontal pixels.
+    epd_sendbyte(EPD_DATA,      0x00);      // GD=SM=TB=0
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -222,7 +225,6 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x3C);
     epd_sendbyte(EPD_DATA,      0x63);
-    // epd_sendbyte(EPD_DATA,      0x73);
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -234,7 +236,6 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x11);
-    // epd_sendbyte(EPD_DATA,      0x01);
     epd_sendbyte(EPD_DATA,      0x03);
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
@@ -245,9 +246,8 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x44);
-    epd_sendbyte(EPD_DATA,      0x00);
-    // epd_sendbyte(EPD_DATA,      0x1F);
-    epd_sendbyte(EPD_DATA,      0x11);      //RAM x address end at 11h(17)->72: [because 1F(31)->128 and 12(18)->76] 
+    epd_sendbyte(EPD_DATA,      0x00);      // XStart=00
+    epd_sendbyte(EPD_DATA,      0x11);      // XEnd=17; RAM x address end at 11h(17)->72: [because 1F(31)->128 and 12(18)->76] 
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -257,9 +257,8 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x45);
-    epd_sendbyte(EPD_DATA,      0x00);
-    epd_sendbyte(EPD_DATA,      0xAB);  //RAM y address start at ABh(171)->172: [because B3(179)->180]
-    // epd_sendbyte(EPD_DATA,      0xB3);
+    epd_sendbyte(EPD_DATA,      0x00);  // YStart=0
+    epd_sendbyte(EPD_DATA,      0xAB);  // YEnd=171; RAM y address start at ABh(171)->172: [because B3(179)->180]
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -279,8 +278,8 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x4F);
-    epd_sendbyte(EPD_DATA,      0xAB);
-    // epd_sendbyte(EPD_DATA,      0x00);
+    // epd_sendbyte(EPD_DATA,      0xAB);
+    epd_sendbyte(EPD_DATA,      0x00);
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -321,7 +320,7 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x21);
-    epd_sendbyte(EPD_DATA,      0x03);
+    epd_sendbyte(EPD_DATA,      0x03);      // InitialUpdate_SourceControl=3=GS0,GS3
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -331,7 +330,7 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x22);
-    epd_sendbyte(EPD_DATA,      0xC4);
+    epd_sendbyte(EPD_DATA,      0xC4);      // enable clock, enable CP, display pattern
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -365,7 +364,7 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x22);
-    epd_sendbyte(EPD_DATA,      0x03);
+    epd_sendbyte(EPD_DATA,      0x03);      // disable CP, disable Clock
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -423,7 +422,7 @@ int main(void)
     GPIO_SetBits(GPIOA, EPD_Pin_nCS);       // nCS=1 disable
     somedelay(DELAY);
 
-
+    somedelay(font_FreeUniversal_Book.nglyphs);
 
 
 

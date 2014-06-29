@@ -34,7 +34,8 @@ SRC = ./src/main.c \
 	./src/stm32f10x_gpio.c \
 	./src/stm32f10x_rcc.c \
 	./src/stm32f10x_spi.c \
-	./src/stm32f10x_usart.c
+	./src/stm32f10x_usart.c \
+	./src/font_freeuniversal_regular_18.c
 
 	# ./src/epd.c \
 	# ./src/epd_ac.c \
