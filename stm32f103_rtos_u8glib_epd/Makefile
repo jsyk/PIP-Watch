@@ -25,6 +25,9 @@ DLIBS =
 # Path to FreeRTOS sources
 FREERTOS = ../FreeRTOSv8.0.1/FreeRTOS/Source
 
+# Path to ST library
+STLIB = ../ST32F10x_Library
+
 # Path to u8glib
 U8G = ../u8glib_arm/src
 
@@ -48,14 +51,14 @@ SRC = main.c epd.c u8g_arm.c \
 	$(FREERTOS)/list.c \
 	$(FREERTOS)/queue.c \
 	$(FREERTOS)/portable/MemMang/heap_2.c \
- 	ST_Library/src/stm32f10x_gpio.c \
- 	ST_Library/src/stm32f10x_rcc.c \
- 	ST_Library/src/stm32f10x_spi.c \
- 	ST_Library/src/stm32f10x_usart.c \
- 	ST_Library/src/stm32f10x_can.c \
- 	ST_Library/src/stm32f10x_i2c.c \
- 	ST_Library/src/system_stm32f10x.c \
- 	ST_Library/src/misc.c
+ 	$(STLIB)/src/stm32f10x_gpio.c \
+ 	$(STLIB)/src/stm32f10x_rcc.c \
+ 	$(STLIB)/src/stm32f10x_spi.c \
+ 	$(STLIB)/src/stm32f10x_usart.c \
+ 	$(STLIB)/src/stm32f10x_can.c \
+ 	$(STLIB)/src/stm32f10x_i2c.c \
+ 	$(STLIB)/src/system_stm32f10x.c \
+ 	$(STLIB)/src/misc.c
 
  	#ST_Library/src/stm32f10x_lib.c
  	# ST_Library/src/stm32f10x_systick.c \
@@ -72,7 +75,7 @@ SRC = main.c epd.c u8g_arm.c \
 ASRC = STM32F10x_Startup.s
 ###############################################################################
 # List all user directories here
-UINCDIR = ./ $(FREERTOS)/include $(FREERTOS)/portable/GCC/ARM_CM3 ST_Library/inc $(U8G) ../Common/include Drivers
+UINCDIR = ./ $(FREERTOS)/include $(FREERTOS)/portable/GCC/ARM_CM3 $(STLIB)/inc $(U8G) ../Common/include Drivers
 # List the user directory to look for the libraries here
 ULIBDIR =
 # List all user libraries here
