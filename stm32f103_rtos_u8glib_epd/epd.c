@@ -695,7 +695,8 @@ uint8_t u8g_dev_ssd1606_172x72_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void 
         //     return U8G_MODE_GRAY2BIT;
     }
     // return u8g_dev_pb8h2_base_fn(u8g, dev, msg, arg);
-    return u8g_dev_pb16v2_base_fn(u8g, dev, msg, arg);      // WARNING: MOD inside!!
+    // return u8g_dev_pb16v2_base_fn(u8g, dev, msg, arg);
+    return u8g_dev_pbxv2_base_fn(u8g, dev, msg, arg);
 }
 
 // U8G_PB_DEV(u8g_dev_ssd1606_172x72_hw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, u8g_dev_ssd1606_172x72_fn, U8G_COM_HW_SPI);

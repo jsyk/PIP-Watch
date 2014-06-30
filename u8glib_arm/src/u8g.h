@@ -881,6 +881,10 @@ uint8_t u8g_dev_pb8v2_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg
 /* u8g_pb16v2.c (double memory of pb8v2) */
 uint8_t u8g_dev_pb16v2_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);
 
+// JSY BEGIN
+/* u8g_pbxv2.c (full memory of pb8v2) */
+uint8_t u8g_dev_pbxv2_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);
+// JSY END
 
 /* u8g_pb8h1.c */
 uint8_t u8g_dev_pb8h1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);

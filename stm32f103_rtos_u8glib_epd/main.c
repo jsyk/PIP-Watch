@@ -318,6 +318,6 @@ void epdDemoU8GTask(void *pvParameters)
 
         /* update position */
         pos++;
-        pos &= 15;
+        pos &= 3;
     }  
 }
