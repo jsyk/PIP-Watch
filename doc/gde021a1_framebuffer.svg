@@ -14,7 +14,10 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="gde021a1_framebuffer.svg">
+   sodipodi:docname="gde021a1_framebuffer.svg"
+   inkscape:export-filename="/home/jara/Dropbox/elektronika/PIP-Watch/doc/gde021a1_framebuffer.png"
+   inkscape:export-xdpi="200.11784"
+   inkscape:export-ydpi="200.11784">
   <defs
      id="defs4">
     <marker
@@ -141,9 +144,9 @@
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:window-width="1920"
-     inkscape:window-height="1137"
-     inkscape:window-x="-4"
-     inkscape:window-y="-4"
+     inkscape:window-height="1152"
+     inkscape:window-x="-2"
+     inkscape:window-y="-3"
      inkscape:window-maximized="1">
     <inkscape:grid
        type="xygrid"

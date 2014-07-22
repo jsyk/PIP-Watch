@@ -38,7 +38,7 @@ check task has detected an error or not. */
 
 /* COM port and baud rate used by the echo task. */
 #define mainCOM0							( 0 )
-#define mainBAUD_RATE						( 115200 )
+#define mainBAUD_RATE						( 57600 )
 
 /*-----------------------------------------------------------*/
 
@@ -61,6 +61,8 @@ void epdDemoU8GTask(void *pvParameters);
 
 u8g_t u8g;
 
+
+void assert_failed( char *pucFile, unsigned long ulLine );
 
 /*-----------------------------------------------------------*/
 
@@ -155,6 +157,30 @@ unsigned long ulTicksToWait = mainCHECK_DELAY_NO_ERROR;
 }
 /*-----------------------------------------------------------*/
 
+int btmExpectOK()
+{
+    signed char cChar;
+
+    xSerialGetChar( mainCOM0, &cChar, portMAX_DELAY );
+    if (cChar != 'O')
+        return 1;
+    
+    xSerialGetChar( mainCOM0, &cChar, portMAX_DELAY );
+    if (cChar != 'K')
+        return 2;
+
+    xSerialGetChar( mainCOM0, &cChar, portMAX_DELAY );
+    if (cChar != '\r')
+        return 3;
+
+    xSerialGetChar( mainCOM0, &cChar, portMAX_DELAY );
+    if (cChar != '\n')
+        return 4;
+
+    return 0;
+}
+
+
 /* Described at the top of this file. */
 static void prvUSARTEchoTask( void *pvParameters )
 {
@@ -183,9 +209,57 @@ static const char *pcLongishString =
 	/* Initialise COM0, which is USART1 according to the STM32 libraries. */
 	lCOMPortInit( mainCOM0, mainBAUD_RATE );
 
+    const char *atEscape = "///";
+    const char *atTest = "AT\r\n";
+    
+    // after-reset condition: give the BT module some time to init itself.
+    vTaskDelay( ( TickType_t ) 1000 / portTICK_PERIOD_MS );
+
+    do {
+        // Before the escape sequence there must be silence for 1s
+        vTaskDelay( ( TickType_t ) 1200 / portTICK_PERIOD_MS );
+        lSerialPutString( mainCOM0, atEscape, strlen(atEscape) );
+        // After the escape sequence there must be silence for 1s
+        vTaskDelay( ( TickType_t ) 1200 / portTICK_PERIOD_MS );
+        
+        // Send plain AT
+        lSerialPutString( mainCOM0, atTest, strlen(atTest) );
+        // vTaskDelay( ( TickType_t ) 20 / portTICK_PERIOD_MS );
+        
+        // expect OK\r\n
+        if (btmExpectOK()) {
+            // failed -> repeat
+            continue;
+        }
+
+        break;
+    } while (1);
+
+    const char *atSetDeviceName = "AT*agln=\"PIP-Watch\",0\r\n";
+    lSerialPutString( mainCOM0, atSetDeviceName, strlen(atSetDeviceName) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+
+    const char *atSetPin = "AT*agfp=\"1234\",0\r\n";
+    lSerialPutString( mainCOM0, atSetPin, strlen(atSetPin) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+
+    const char *atToDataMode = "AT*addm\r\n";
+    lSerialPutString( mainCOM0, atToDataMode, strlen(atToDataMode) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+
+
 	/* Try sending out a string all in one go, as a very basic test of the
     lSerialPutString() function. */
-    lSerialPutString( mainCOM0, pcLongishString, strlen( pcLongishString ) );
+    // lSerialPutString( mainCOM0, pcLongishString, strlen( pcLongishString ) );
 
 	for( ;; )
 	{
@@ -280,7 +354,7 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 }
 /*-----------------------------------------------------------*/
 
-void assert_failed( unsigned char *pucFile, unsigned long ulLine )
+void assert_failed( char *pucFile, unsigned long ulLine )
 {
 	( void ) pucFile;
 	( void ) ulLine;
