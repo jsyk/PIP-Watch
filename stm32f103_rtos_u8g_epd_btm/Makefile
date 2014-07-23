@@ -107,7 +107,7 @@ IMM2UC4 = $(SRCUC4:.c=.o)
 IMM3UC4 = $(IMM2UC4:.C=.O)
 OBJUC4  = $(IMM1) $(IMM3UC4)
 
-CFLAGS  = -c -O0 -g3 -std=c99 -Wall -mcpu=$(CPU) -mthumb -mtune=$(CPU) -ffunction-sections -fdata-sections $(INCDIR) $(LIBDIR)  $(DEFS)
+CFLAGS  = -c -O0 -g3 -std=c99 -Wall -mcpu=$(CPU) -mthumb -mtune=$(CPU) -mfloat-abi=soft -ffunction-sections -fdata-sections $(INCDIR) $(LIBDIR)  $(DEFS)
 #-Wc++-compat
 ASFLAGS = -mcpu=$(CPU) -mthumb -g3 -x assembler-with-cpp -c -ffunction-sections $(ADEFS)
 LFLAGS  = -nostartfiles -mcpu=$(CPU) -mthumb -mtune=$(CPU) -Wl,--gc-sections 

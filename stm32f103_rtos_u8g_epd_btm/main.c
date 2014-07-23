@@ -1,6 +1,11 @@
 
 /* Standard includes. */
 #include <string.h>
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI        3.14159f
+#endif
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
@@ -48,7 +53,7 @@ check task has detected an error or not. */
 static void prvSetupHardware( void );
 
 /* The 'check' task as described at the top of this file. */
-static void prvCheckTask( void *pvParameters );
+// static void prvCheckTask( void *pvParameters );
 
 /* A simple task that echoes all the characters that are received on COM0
 (USART1). */
@@ -111,6 +116,7 @@ int main( void )
 
 /*-----------------------------------------------------------*/
 
+#if 0
 /* Described at the top of this file. */
 static void prvCheckTask( void *pvParameters )
 {
@@ -161,6 +167,15 @@ unsigned long ulTicksToWait = mainCHECK_DELAY_NO_ERROR;
 		// vParTestToggleLED( mainCHECK_LED );
 	}
 }
+#endif
+
+/* FreeRTOS: User defined function executed from within the idle task. */
+void vApplicationIdleHook( void )
+{
+    /* Activate the sleep mode - wait for next interrupt. */
+    __WFI();
+}
+
 /*-----------------------------------------------------------*/
 
 void usartDrainInput(long lPort)
@@ -441,14 +456,18 @@ static void prvSetupHardware( void )
 	while (RCC_GetFlagStatus(RCC_FLAG_HSERDY) == RESET);
 
     /* HCLK = SYSCLK. */
-	RCC_HCLKConfig( RCC_SYSCLK_Div1 );
+    // RCC_HCLKConfig( RCC_SYSCLK_Div1 );
+	RCC_HCLKConfig( RCC_SYSCLK_Div2 );     // HCLK=8MHz
 
-    /* PCLK2  = HCLK. */
-	RCC_PCLK2Config( RCC_HCLK_Div1 );
+    /* NOTE: update the constant configCPU_CLOCK_HZ to the correct SysTick (HCLK) operating frequency! */
 
-    /* PCLK1  = HCLK/2. */
-    RCC_PCLK1Config( RCC_HCLK_Div2 );
-	// RCC_PCLK1Config( RCC_HCLK_Div1 );
+    /* APB2 max 72MHz. PCLK2  = HCLK. */
+    // RCC_PCLK2Config( RCC_HCLK_Div1 );
+	RCC_PCLK2Config( RCC_HCLK_Div2 );      // PCLK2=4MHz
+
+    /* APB1 max 36MHz. PCLK1  = HCLK/2. */
+    // RCC_PCLK1Config( RCC_HCLK_Div2 );       
+    RCC_PCLK1Config( RCC_HCLK_Div4 );    // PCLK1=2MHz
 
 	/* ADCCLK = PCLK2/4. */
 	RCC_ADCCLKConfig( RCC_PCLK2_Div4 );
@@ -459,7 +478,8 @@ static void prvSetupHardware( void )
 	/* PLLCLK = 8MHz * 9 = 72 MHz */
     // RCC_PLLConfig( RCC_PLLSource_HSE_Div1, RCC_PLLMul_9 );   //orig
     // RCC_PLLConfig( RCC_PLLSource_HSI_Div2, RCC_PLLMul_9 );     // 8/2 * 9 = 36 MHz
-	RCC_PLLConfig( RCC_PLLSource_PREDIV1, RCC_PLLMul_9 );     // 8 * 9 = 72 MHz
+    // RCC_PLLConfig( RCC_PLLSource_PREDIV1, RCC_PLLMul_9 );     // 8 * 9 = 72 MHz (ok)
+	RCC_PLLConfig( RCC_PLLSource_PREDIV1, RCC_PLLMul_2 );     // 8 * 2 = 16 MHz (ok)
 
     /* Enable PLL. */
 	RCC_PLLCmd( ENABLE );
@@ -495,8 +515,7 @@ static void prvSetupHardware( void )
     epdInitInterface();
 
 	/* APB1 Periph clock enable */
-    // FIXME: RCC_APB1Periph_SPI2 not used?
-	RCC_APB1PeriphClockCmd( RCC_APB1Periph_SPI2 | RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE );
+	RCC_APB1PeriphClockCmd( RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE );
 
     /* RTC */
 
@@ -551,6 +570,54 @@ void assert_failed( char *pucFile, unsigned long ulLine )
 
 /*-----------------------------------------------------------*/
 
+#define SINTAB_MULT         34
+#define SINTAB_QCNT         15
+
+// const int sintab[SINTAB_QCNT] = {
+//     // round(sin(pi/2/15 * 0:14) * 34)
+//     0,  4,  7, 11, 14, 17, 20, 23, 25, 28, 29, 31, 32, 33, 34
+// };
+
+const short sintab60[60] = {
+    // round(sin(2*pi/60 * 0:59) * 34)
+    0,   4,   7,  11,  14,  17,  20,  23,  25,  28,  29,  31,  32,  33,  34,  34,  34,  33,  32,
+    31,  29,  28,  25,  23,  20,  17,  14,  11,   7,   4,   0,  -4,  -7, -11, -14, -17, -20, -23,
+    -25, -28, -29, -31, -32, -33, -34, -34, -34, -33, -32, -31, -29, -28, -25, -23, -20, -17, -14,
+    -11,  -7,  -4
+};
+
+int absrot60(int angle)
+{
+    while (angle < 0) { angle += 60; }
+    while (angle >= 60) { angle -= 60; }
+    return angle;
+}
+
+void draw_clock_face(unsigned int hours, unsigned int minutes, int center_x, int center_y, int radius)
+{
+    u8g_DrawCircle(&u8g, center_x, center_y, radius, U8G_DRAW_ALL);
+    u8g_DrawCircle(&u8g, center_x, center_y, radius+1, U8G_DRAW_ALL);
+
+    hours = (hours % 12);
+    minutes = minutes % 60;
+
+    int angle = absrot60(-hours*5 + 15);
+    int x2 = sintab60[absrot60(angle+15)]/2 + center_x;   // cos, x-axis is natural direction
+    int y2 = (-sintab60[angle]/2) + center_y;         // sin, y-axis is inverted
+
+    u8g_DrawLine(&u8g, center_x, center_y, x2, y2);
+    u8g_DrawLine(&u8g, center_x+1, center_y, x2+1, y2);
+    u8g_DrawLine(&u8g, center_x, center_y+1, x2, y2+1);
+    u8g_DrawLine(&u8g, center_x-1, center_y, x2-1, y2);
+    u8g_DrawLine(&u8g, center_x, center_y-1, x2, y2-1);
+
+    angle = absrot60(-minutes + 15);
+    x2 = sintab60[absrot60(angle+15)]*30/34 + center_x;   // cos, x-axis is natural direction
+    y2 = (-sintab60[angle])*30/34 + center_y;         // sin, y-axis is inverted
+
+    u8g_DrawLine(&u8g, center_x, center_y, x2, y2);
+}
+
 void draw(int pos)
 {
     u8g_SetFont(&u8g, u8g_font_helvR12);
@@ -559,8 +626,16 @@ void draw(int pos)
     u8g_DrawStr(&u8g,  0, 15+15*2, hello_text[2]);
     u8g_DrawStr(&u8g,  0, 15+15*3, hello_text[3]);
     // u8g_DrawStr(&u8g,  0, 12+10*pos, "A B C D E F");
-    u8g_DrawLine(&u8g, 150, 35, 170, 45);
-    u8g_DrawCircle(&u8g, 150, 35, 20, U8G_DRAW_ALL);
+
+    /* clock face */
+#define CFACE_CENTER_X      136
+#define CFACE_CENTER_Y      36
+#define CFACE_RADIUS        34
+    // draw_clock_face(2, 24, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);
+    int h;
+    for (h = 0; h < 12; ++h) {
+        draw_clock_face(0, h*5, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);
+    }
 }
 
 void epdDemoU8GTask(void *pvParameters)
@@ -596,3 +671,21 @@ void epdDemoU8GTask(void *pvParameters)
         pos &= 3;
     }  
 }
+
+#if 0
+void RTC_IRQHandler(void)
+{
+    rtc_seconds += 1;
+    if (rtc_seconds >= 60) {
+        rtc_seconds -= 60;
+        rtc_minutes += 1;
+        if (rtc_minutes >= 60) {
+            rtc_minutes -= 60;
+            rtc_hours += 1;
+            if (rtc_hours >= 24) {
+                rtc_hours -= 24;
+            }
+        }
+    }
+}
+#endif

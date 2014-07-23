@@ -32,9 +32,6 @@
 #define EPD_DATA        1
 #define EPD_COMMAND     0
 
-#define WIDTH           172
-#define HEIGHT          72
-
 #if 0
 #define WIDTH           72
 #define HEIGHT          172

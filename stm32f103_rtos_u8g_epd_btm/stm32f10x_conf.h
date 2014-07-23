@@ -27,7 +27,7 @@
 /* Uncomment/Comment the line below to enable/disable peripheral header file inclusion */
 // !! JARA MANUAL EDIT !!
 // #include "stm32f10x_adc.h"
-// #include "stm32f10x_bkp.h"
+#include "stm32f10x_bkp.h"
 // #include "stm32f10x_can.h"
 // #include "stm32f10x_cec.h"
 // #include "stm32f10x_crc.h"
