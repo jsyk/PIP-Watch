@@ -13,9 +13,6 @@
 
 /* USER CODE END 0 */
 
-// extern font_t font_FreeUniversal_Book;
-
-#define DELAY       1000000
 
 #define EPD_Pin_nRES      GPIO_Pin_2
 #define EPD_Port_nRES       GPIOB
@@ -55,6 +52,7 @@ const unsigned char epd_lut_init_data[90] = {
     0x00,0x00,
 };
 
+#if 0
 const unsigned char *gImg_list[] = {
     gImage_chessboard1,
     gImage_eluosi,
@@ -68,7 +66,7 @@ const unsigned char *gImg_list[] = {
     gImage_SUNING,
     NULL            // end of list marker
 };
-
+#endif
 
 uint8_t bitreverse(uint8_t b)
 {
@@ -542,6 +540,7 @@ void epdInitSSD1606(void)
     vTaskDelay(( ( TickType_t ) 1 / portTICK_PERIOD_MS ));
 }
 
+#if 0
 void epdShowPicturesTask(void *pvParameters)
 {
     int i;
@@ -576,7 +575,9 @@ void epdShowPicturesTask(void *pvParameters)
     }
 
 }
+#endif
 
+#if 0
 uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr)
 {
     switch(msg)
@@ -676,6 +677,7 @@ uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_pt
     }
     return 1;
 }
+#endif
 
 uint8_t u8g_dev_ssd1606_172x72_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg)
 {
@@ -712,6 +714,7 @@ uint8_t u8g_dev_ssd1606_172x72_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void 
     return u8g_dev_pbxv2_base_fn(u8g, dev, msg, arg);
 }
 
+#if 1
 // U8G_PB_DEV(u8g_dev_ssd1606_172x72_hw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, u8g_dev_ssd1606_172x72_fn, U8G_COM_HW_SPI);
 
 /* local frame buffer memory, almost 4kB */
@@ -720,3 +723,4 @@ uint8_t u8g_dev_ssd1606_172x72_hw_spi_buf[WIDTH*HEIGHT/4] U8G_NOCOMMON ;
 u8g_pb_t u8g_dev_ssd1606_172x72_hw_spi_pb = { {PAGE_HEIGHT, HEIGHT, 0, 0, 0},  WIDTH, u8g_dev_ssd1606_172x72_hw_spi_buf}; 
 /* device descriptor */
 u8g_dev_t u8g_dev_ssd1606_172x72_hw_spi = { u8g_dev_ssd1606_172x72_fn, &u8g_dev_ssd1606_172x72_hw_spi_pb, u8g_com_null_fn };
+#endif

@@ -39,7 +39,7 @@ PRJDIR		= prj
 
 U8GSRC:=$(wildcard $(U8G)/*.c)
 
-SRC = main.c epd.c u8g_arm.c \
+SRC = main.c epd.c rtclock.c btm.c u8g_arm.c \
 	flash.c \
 	epd_imgs.c \
 	$(U8GSRC) \
@@ -166,7 +166,8 @@ stflash: $(NAME)_flash.bin
 	st-flash write $(NAME)_flash.bin 0x08000000
 
 ocdserver:
-	openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt" -c "reset halt"
+	openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt"
+	# openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt" -c "reset halt"
 
 ocdgdb: $(NAME)_flash.elf
 	arm-none-eabi-gdb --eval-command="target remote localhost:3333" $(NAME)_flash.elf

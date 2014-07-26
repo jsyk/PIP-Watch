@@ -11,3 +11,7 @@ PA7     Out     SPI1_MOSI
 
 PB2     Out     GPIO nRES
 PB10    Out     GPIO EPD_DC
+
+------
+PC13    Out     Tamper-RTC
+

@@ -1,11 +1,7 @@
+#include "main.h"
 
 /* Standard includes. */
 #include <string.h>
-#include <math.h>
-
-#ifndef M_PI
-#define M_PI        3.14159f
-#endif
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
@@ -22,7 +18,8 @@
 /* Driver includes. */
 #include "STM32_USART.h"
 #include "epd.h"
-
+#include "rtclock.h"
+#include "btm.h"
 
 /* The time between cycles of the 'check' task - which depends on whether the
 check task has detected an error or not. */
@@ -33,17 +30,16 @@ check task has detected an error or not. */
 #define mainCHECK_LED						( 3 )
 
 /* Task priorities. */
+#if 0
 #define mainSEM_TEST_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainBLOCK_Q_PRIORITY				( tskIDLE_PRIORITY + 2 )
 #define mainCHECK_TASK_PRIORITY				( tskIDLE_PRIORITY + 3 )
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
-#define mainECHO_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainINTEGER_TASK_PRIORITY           ( tskIDLE_PRIORITY )
 #define mainGEN_QUEUE_TASK_PRIORITY			( tskIDLE_PRIORITY )
+#endif
+#define mainECHO_TASK_PRIORITY              ( tskIDLE_PRIORITY + 1 )
 
-/* COM port and baud rate used by the echo task. */
-#define comBTM							       ( 1 )
-#define mainBAUD_RATE						( 57600 )
 
 /*-----------------------------------------------------------*/
 
@@ -55,11 +51,8 @@ static void prvSetupHardware( void );
 /* The 'check' task as described at the top of this file. */
 // static void prvCheckTask( void *pvParameters );
 
-/* A simple task that echoes all the characters that are received on COM0
-(USART1). */
-static void prvUSARTEchoTask( void *pvParameters );
 
-void epdDemoU8GTask(void *pvParameters);
+void EPDDrawTask(void *pvParameters);
 
 /*-----------------------------------------------------------*/
 /* Global variables */
@@ -75,6 +68,10 @@ void assert_failed( char *pucFile, unsigned long ulLine );
 
 /*-----------------------------------------------------------*/
 
+
+
+/*-----------------------------------------------------------*/
+
 int main( void )
 {
 #ifdef DEBUG
@@ -86,22 +83,16 @@ int main( void )
 
     toDisplayStrQueue = xQueueCreate(16, sizeof(char *));
 
-	/* Start the standard demo tasks.  These are just here to exercise the
-	kernel port and provide examples of how the FreeRTOS API can be used. */
-	// vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
-    // vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
-    // vStartIntegerMathTasks( mainINTEGER_TASK_PRIORITY );
-    // vStartGenericQueueTasks( mainGEN_QUEUE_TASK_PRIORITY );
-	// vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY );
-    // vStartQueuePeekTasks();
-    // vStartRecursiveMutexTasks();
+    current_rtime.sec = 0;
+    current_rtime.min = 20;
+    current_rtime.hour = 23;
 
 	/* Create the 'echo' task, which is also defined within this file. */
-    xTaskCreate( prvUSARTEchoTask, "Echo", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+    xTaskCreate( BluetoothModemTask, "BTM", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     // epd Task
     // xTaskCreate( epdShowPicturesTask, "EPD", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
-	xTaskCreate( epdDemoU8GTask, "EPDU8G", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+	xTaskCreate( EPDDrawTask, "EpdDraw", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
 	/* Create the 'check' task, which is also defined within this file. */
 	// xTaskCreate( prvCheckTask, "Check", configMINIMAL_STACK_SIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
@@ -116,58 +107,6 @@ int main( void )
 
 /*-----------------------------------------------------------*/
 
-#if 0
-/* Described at the top of this file. */
-static void prvCheckTask( void *pvParameters )
-{
-TickType_t xLastExecutionTime;
-unsigned long ulTicksToWait = mainCHECK_DELAY_NO_ERROR;
-
-	/* Just to remove the compiler warning about the unused parameter. */
-	( void ) pvParameters;
-
-	/* Initialise the variable used to control our iteration rate prior to
-	its first use. */
-	xLastExecutionTime = xTaskGetTickCount();
-
-	for( ;; )
-	{
-		/* Wait until it is time to run the tests again. */
-		vTaskDelayUntil( &xLastExecutionTime, ulTicksToWait );
-#if 0
-		/* Has an error been found in any task? */
-		if( xAreGenericQueueTasksStillRunning() != pdTRUE )
-		{
-			/* Reduce the time between cycles of this task - which has the
-			effect of increasing the rate at which the 'check' LED toggles to
-			indicate the existence of an error to an observer. */
-			ulTicksToWait = mainCHECK_DELAY_ERROR;
-		}
-		else if( xAreQueuePeekTasksStillRunning() != pdTRUE )
-		{
-			ulTicksToWait = mainCHECK_DELAY_ERROR;
-		}
-		else if( xAreBlockingQueuesStillRunning() != pdTRUE )
-		{
-			ulTicksToWait = mainCHECK_DELAY_ERROR;
-		}
-	    else if( xAreSemaphoreTasksStillRunning() != pdTRUE )
-	    {
-	        ulTicksToWait = mainCHECK_DELAY_ERROR;
-	    }
-	    else if( xAreIntegerMathsTaskStillRunning() != pdTRUE )
-	    {
-	        ulTicksToWait = mainCHECK_DELAY_ERROR;
-	    }
-	    else if( xAreRecursiveMutexTasksStillRunning() != pdTRUE )
-	    {
-	    	ulTicksToWait = mainCHECK_DELAY_ERROR;
-	    }
-#endif
-		// vParTestToggleLED( mainCHECK_LED );
-	}
-}
-#endif
 
 /* FreeRTOS: User defined function executed from within the idle task. */
 void vApplicationIdleHook( void )
@@ -178,270 +117,6 @@ void vApplicationIdleHook( void )
 
 /*-----------------------------------------------------------*/
 
-void usartDrainInput(long lPort)
-{
-    char ch;
-    while (xSerialGetChar(lPort, &ch, 0) == pdPASS)
-        ;
-}
-
-int usartGetString(long lPort, char *buf, int buflen, TickType_t xBlockTime)
-{
-    char ch;
-    int cnt = 0;
-    while ((cnt < buflen) && (xSerialGetChar(lPort, &ch, xBlockTime) == pdPASS)) {
-        buf[cnt++] = ch;
-    }
-    /* null-terminate, if possible */
-    if (cnt < buflen) {
-        buf[cnt] = 0;
-    }
-    return cnt;
-}
-
-int btmExpectOK()
-{
-    const int buflen = 64;
-    char xbuf[buflen];
-    int len;
-
-    len = usartGetString(comBTM, xbuf, buflen, ( TickType_t ) 10 / portTICK_PERIOD_MS);
-
-    char *buf = xbuf;
-
-    if (len < 4)
-        return 1;
-
-    if ((buf[0] == 'A' && buf[1] == 'T') || (buf[0] == '\r')) {
-        // discard echo text
-        while (!(buf[0] == '\r' && buf[1] == '\n')) {
-            if (buf[0] == 0)
-                return 5;
-            ++buf;
-        }
-        // skip \r\n
-        buf += 2;
-    }
-
-    if (buf[0] != 'O')
-        return 2;
-    if (buf[1] != 'K')
-        return 3;
-    if (buf[2] != '\r')
-        return 4;
-    if (buf[3] != '\n')
-        return 4;
-
-#if 0
-    char cChar;
-
-    xSerialGetChar( comBTM, &cChar, portMAX_DELAY );
-    if (cChar != 'O')
-        return 1;
-    
-    xSerialGetChar( comBTM, &cChar, portMAX_DELAY );
-    if (cChar != 'K')
-        return 2;
-
-#if 0
-    xSerialGetChar( comBTM, &cChar, portMAX_DELAY );
-    if (cChar != '\r')
-        return 3;
-#endif
-
-    xSerialGetChar( comBTM, &cChar, portMAX_DELAY );
-    if (cChar != '\n')
-        return 4;
-#endif
-    return 0;
-}
-
-
-int itostr(char *buf, int buflen, int x)
-{
-    int cnt = 0;
-    
-    if (buflen <= 0) { return cnt; }
-
-    if (x < 0) {
-        buf[0] = '-';
-        ++buf;
-        --buflen;
-        ++cnt;
-        x = -x;
-    }
-
-    if (buflen <= 0) { return cnt; }
-
-    char *beg = buf;
-
-    do {
-        char digit = (x % 10) + '0';
-        buf[0] = digit;
-        ++buf;
-        ++cnt;
-        --buflen;
-        if (buflen <= 0) { return cnt; }
-        x = x / 10;
-    } while (x > 0);
-
-    if (buflen > 0) {
-        buf[0] = '\0';
-    }
-    
-    --buf;
-
-    while (beg < buf) {
-        char ch = *beg;
-        *beg = *buf;
-        *buf = ch;
-        ++beg;
-        --buf;
-    }
-
-    return cnt;
-}
-
-
-/* Described at the top of this file. */
-static void prvUSARTEchoTask( void *pvParameters )
-{
-    char cChar;
-
-/* String declared static to ensure it does not end up on the stack, no matter
-what the optimisation level. */
-static const char *pcLongishString =
-"ABBA was a Swedish pop music group formed in Stockholm in 1972, consisting of Anni-Frid Frida Lyngstad, "
-"Björn Ulvaeus, Benny Andersson and Agnetha Fältskog. Throughout the band's existence, Fältskog and Ulvaeus "
-"were a married couple, as were Lyngstad and Andersson - although both couples later divorced. They became one "
-"of the most commercially successful acts in the history of popular music, and they topped the charts worldwide "
-"from 1972 to 1983.  ABBA gained international popularity employing catchy song hooks, simple lyrics, sound "
-"effects (reverb, phasing) and a Wall of Sound achieved by overdubbing the female singers' voices in multiple "
-"harmonies. As their popularity grew, they were sought after to tour Europe, Australia, and North America, drawing "
-"crowds of ardent fans, notably in Australia. Touring became a contentious issue, being particularly cumbersome for "
-"Fältskog, but they continued to release studio albums to widespread commercial success. At the height of their "
-"popularity, however, both relationships began suffering strain that led ultimately to the collapse of first the "
-"Ulvaeus-Fältskog marriage (in 1979) and then of the Andersson-Lyngstad marriage in 1981. In the late 1970s and early "
-"1980s these relationship changes began manifesting in the group's music, as they produced more thoughtful, "
-"introspective lyrics with different compositions.";
-
-	/* Just to avoid compiler warnings. */
-	( void ) pvParameters;
-
-
-	/* Initialise COM0, which is USART1 according to the STM32 libraries. */
-	lCOMPortInit( comBTM, mainBAUD_RATE );
-
-    // do { } while (1);
-
-    const char *atEscape = "///";
-    const char *atEOL = "\r";
-    const char *atTest = "AT\r";
-    
-    // after-reset condition: give the BT module some time to init itself.
-    vTaskDelay( ( TickType_t ) 1000 / portTICK_PERIOD_MS );
-
-    do {
-        #if 1
-        // Before the escape sequence there must be silence for 1s
-        vTaskDelay( ( TickType_t ) 1200 / portTICK_PERIOD_MS );
-        lSerialPutString( comBTM, atEscape, strlen(atEscape) );
-        // After the escape sequence there must be silence for 1s
-        vTaskDelay( ( TickType_t ) 1200 / portTICK_PERIOD_MS );
-        #endif
-
-        // Send end of line
-        lSerialPutString( comBTM, atEOL, strlen(atEOL) );
-        // wait a little bit
-        vTaskDelay( ( TickType_t ) 10 / portTICK_PERIOD_MS );
-        // empty input buffer
-        usartDrainInput(comBTM);
-        
-        // Send plain AT
-        lSerialPutString( comBTM, atTest, strlen(atTest) );
-        // vTaskDelay( ( TickType_t ) 20 / portTICK_PERIOD_MS );
-        
-        // expect "OK\r\n"
-    } while (btmExpectOK());
-
-    // disable local echo
-    const char *atDisableEcho = "ATE0\r";
-    lSerialPutString( comBTM, atDisableEcho, strlen(atDisableEcho) );
-    if (btmExpectOK()) {
-        // failed
-        assert_failed(__FILE__, __LINE__);
-    }
-
-    const char *atSetDeviceName = "AT*agln=\"PIP-Watch\",0\r\n";
-    lSerialPutString( comBTM, atSetDeviceName, strlen(atSetDeviceName) );
-    if (btmExpectOK()) {
-        // failed
-        assert_failed(__FILE__, __LINE__);
-    }
-
-    const char *atSetPin = "AT*agfp=\"1234\",0\r";
-    lSerialPutString( comBTM, atSetPin, strlen(atSetPin) );
-    if (btmExpectOK()) {
-        // failed
-        assert_failed(__FILE__, __LINE__);
-    }
-
-    const char *atToDataMode = "AT*addm\r";
-    lSerialPutString( comBTM, atToDataMode, strlen(atToDataMode) );
-    if (btmExpectOK()) {
-        // failed
-        assert_failed(__FILE__, __LINE__);
-    }
-
-
-	/* Try sending out a string all in one go, as a very basic test of the
-    lSerialPutString() function. */
-    // lSerialPutString( comBTM, pcLongishString, strlen( pcLongishString ) );
-
-    int k = 0, m = 0;
-    char *buf = NULL;
-
-	for( ;; )
-	{
-		/* Block to wait for a character to be received on COM0. */
-		xSerialGetChar( comBTM, &cChar, portMAX_DELAY );
-
-		/* Write the received character back to COM0. */
-		xSerialPutChar( comBTM, cChar, 0 );
-
-        if (!buf) {
-            buf = pvPortMalloc(sizeof(char) * 32);
-            k = itostr(buf, 32, RTC_GetCounter());
-        }
-
-        buf[k++] = cChar;
-        
-        if (cChar == '\r' || k >= 30) {
-            buf[k] = '\0';
-            if (xQueueSend(toDisplayStrQueue, &buf, 0) == pdTRUE) {
-                // ok; will alloc new buffer
-                buf = NULL;
-            } else {
-                // fail; ignore, keep buffer
-            }
-            k = 0;
-            xSerialPutChar( comBTM, '\n', 0 );
-        }
-
-#if 0
-        hello_text[m][k++] = cChar;
-
-        if (cChar == '\r' || k >= 30) {
-            hello_text[m][k] = 0;
-            k = 0;
-            if (++m > 3) {
-                m = 0;
-            }
-            xSerialPutChar( comBTM, '\n', 0 );
-        }
-#endif
-	}
-}
 /*-----------------------------------------------------------*/
 
 static void prvSetupHardware( void )
@@ -538,10 +213,18 @@ static void prvSetupHardware( void )
     RTC_WaitForSynchro();
     RTC_WaitForLastTask();
 
-
-    // RTC_ITConfig()
+    /* set prescaler: divide by 32768 -> generate 1Hz irq */
     RTC_SetPrescaler(32768);
+    RTC_WaitForLastTask();
+    /* enable RTC irq */
+    RTC_ITConfig(RTC_IT_SEC, ENABLE);
 
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_KERNEL_INTERRUPT_PRIORITY;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
+    NVIC_Init( &NVIC_InitStructure );
 
     RTC_WaitForLastTask();
 }
@@ -570,53 +253,6 @@ void assert_failed( char *pucFile, unsigned long ulLine )
 
 /*-----------------------------------------------------------*/
 
-#define SINTAB_MULT         34
-#define SINTAB_QCNT         15
-
-// const int sintab[SINTAB_QCNT] = {
-//     // round(sin(pi/2/15 * 0:14) * 34)
-//     0,  4,  7, 11, 14, 17, 20, 23, 25, 28, 29, 31, 32, 33, 34
-// };
-
-const short sintab60[60] = {
-    // round(sin(2*pi/60 * 0:59) * 34)
-    0,   4,   7,  11,  14,  17,  20,  23,  25,  28,  29,  31,  32,  33,  34,  34,  34,  33,  32,
-    31,  29,  28,  25,  23,  20,  17,  14,  11,   7,   4,   0,  -4,  -7, -11, -14, -17, -20, -23,
-    -25, -28, -29, -31, -32, -33, -34, -34, -34, -33, -32, -31, -29, -28, -25, -23, -20, -17, -14,
-    -11,  -7,  -4
-};
-
-int absrot60(int angle)
-{
-    while (angle < 0) { angle += 60; }
-    while (angle >= 60) { angle -= 60; }
-    return angle;
-}
-
-void draw_clock_face(unsigned int hours, unsigned int minutes, int center_x, int center_y, int radius)
-{
-    u8g_DrawCircle(&u8g, center_x, center_y, radius, U8G_DRAW_ALL);
-    u8g_DrawCircle(&u8g, center_x, center_y, radius+1, U8G_DRAW_ALL);
-
-    hours = (hours % 12);
-    minutes = minutes % 60;
-
-    int angle = absrot60(-hours*5 + 15);
-    int x2 = sintab60[absrot60(angle+15)]/2 + center_x;   // cos, x-axis is natural direction
-    int y2 = (-sintab60[angle]/2) + center_y;         // sin, y-axis is inverted
-
-    u8g_DrawLine(&u8g, center_x, center_y, x2, y2);
-    u8g_DrawLine(&u8g, center_x+1, center_y, x2+1, y2);
-    u8g_DrawLine(&u8g, center_x, center_y+1, x2, y2+1);
-    u8g_DrawLine(&u8g, center_x-1, center_y, x2-1, y2);
-    u8g_DrawLine(&u8g, center_x, center_y-1, x2, y2-1);
-
-    angle = absrot60(-minutes + 15);
-    x2 = sintab60[absrot60(angle+15)]*30/34 + center_x;   // cos, x-axis is natural direction
-    y2 = (-sintab60[angle])*30/34 + center_y;         // sin, y-axis is inverted
-
-    u8g_DrawLine(&u8g, center_x, center_y, x2, y2);
-}
 
 void draw(int pos)
 {
@@ -631,14 +267,15 @@ void draw(int pos)
 #define CFACE_CENTER_X      136
 #define CFACE_CENTER_Y      36
 #define CFACE_RADIUS        34
-    // draw_clock_face(2, 24, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);
-    int h;
-    for (h = 0; h < 12; ++h) {
-        draw_clock_face(0, h*5, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);
-    }
+    draw_clock_face(current_rtime.hour, current_rtime.min,
+        CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
+    // int h;
+    // for (h = 0; h < 12; ++h) {
+    //     draw_clock_face(0, h*5, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);
+    // }
 }
 
-void epdDemoU8GTask(void *pvParameters)
+void EPDDrawTask(void *pvParameters)
 {
     u8g_InitComFn(&u8g, &u8g_dev_ssd1606_172x72_hw_spi, u8g_com_null_fn);
     u8g_SetDefaultForegroundColor(&u8g);
@@ -657,13 +294,15 @@ void epdDemoU8GTask(void *pvParameters)
         // vTaskDelay(( ( TickType_t ) 2000 / portTICK_PERIOD_MS ));
 
         if (xQueueReceive(toDisplayStrQueue, &buf, portMAX_DELAY) == pdTRUE) {
-            int i;
-            for (i = 0; i < 3; ++i) {
-                strncpy(hello_text[i], hello_text[i+1], 32);
+            if (buf) {
+                for (int i = 0; i < 3; ++i) {
+                    strncpy(hello_text[i], hello_text[i+1], 32);
+                }
+                strncpy(hello_text[3], buf, 32);
+
+                vPortFree(buf);
+                buf = NULL;
             }
-            strncpy(hello_text[3], buf, 32);
-            vPortFree(buf);
-            buf = NULL;
         }
 
         /* update position */
@@ -672,20 +311,3 @@ void epdDemoU8GTask(void *pvParameters)
     }  
 }
 
-#if 0
-void RTC_IRQHandler(void)
-{
-    rtc_seconds += 1;
-    if (rtc_seconds >= 60) {
-        rtc_seconds -= 60;
-        rtc_minutes += 1;
-        if (rtc_minutes >= 60) {
-            rtc_minutes -= 60;
-            rtc_hours += 1;
-            if (rtc_hours >= 24) {
-                rtc_hours -= 24;
-            }
-        }
-    }
-}
-#endif
