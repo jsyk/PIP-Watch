@@ -20,6 +20,7 @@
 #include "epd.h"
 #include "rtclock.h"
 #include "btm.h"
+#include "battery.h"
 
 /* The time between cycles of the 'check' task - which depends on whether the
 check task has detected an error or not. */
@@ -91,8 +92,9 @@ int main( void )
     xTaskCreate( BluetoothModemTask, "BTM", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     // epd Task
-    // xTaskCreate( epdShowPicturesTask, "EPD", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 	xTaskCreate( EPDDrawTask, "EpdDraw", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+
+    xTaskCreate( BatteryTask, "Battery", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
 	/* Create the 'check' task, which is also defined within this file. */
 	// xTaskCreate( prvCheckTask, "Check", configMINIMAL_STACK_SIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
@@ -144,8 +146,8 @@ static void prvSetupHardware( void )
     // RCC_PCLK1Config( RCC_HCLK_Div2 );       
     RCC_PCLK1Config( RCC_HCLK_Div4 );    // PCLK1=2MHz
 
-	/* ADCCLK = PCLK2/4. */
-	RCC_ADCCLKConfig( RCC_PCLK2_Div4 );
+	/* ADCCLK = PCLK2/2. */
+	RCC_ADCCLKConfig( RCC_PCLK2_Div2 );    // PCLK2/2 = 2MHz
 
     /* Flash 2 wait state. */
 	*( volatile unsigned long  * )0x40022000 = 0x01;
@@ -170,7 +172,7 @@ static void prvSetupHardware( void )
 
 	/* Enable GPIOA, GPIOB, GPIOC, GPIOD, GPIOE and AFIO clocks */
 	RCC_APB2PeriphClockCmd(	RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |RCC_APB2Periph_GPIOC
-							| RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE | RCC_APB2Periph_AFIO, ENABLE );
+							| RCC_APB2Periph_GPIOD | RCC_APB2Periph_AFIO, ENABLE );
 
 	/* Set the Vector Table base address at 0x08000000. */
 	NVIC_SetVectorTable( NVIC_VectTab_FLASH, 0x0 );
@@ -227,6 +229,23 @@ static void prvSetupHardware( void )
     NVIC_Init( &NVIC_InitStructure );
 
     RTC_WaitForLastTask();
+
+
+    /* ADC */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+
+    ADC_InitTypeDef ADC_InitStruct;
+    ADC_StructInit(&ADC_InitStruct);
+    ADC_InitStruct.ADC_Mode = ADC_Mode_Independent;
+    ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+    ADC_Init(ADC1, &ADC_InitStruct);
+
+    ADC_Cmd(ADC1, ENABLE);
+    ADC_TempSensorVrefintCmd(ENABLE);
+
+    ADC_ITConfig(ADC1, ADC_IT_EOC, ENABLE);
+    NVIC_InitStructure.NVIC_IRQChannel = ADC1_IRQn;
+    NVIC_Init( &NVIC_InitStructure );
 }
 /*-----------------------------------------------------------*/
 
@@ -253,6 +272,21 @@ void assert_failed( char *pucFile, unsigned long ulLine )
 
 /*-----------------------------------------------------------*/
 
+#define BATTERY_WIDTH       20
+#define BATTERY_HEIGHT      8
+
+void draw_battery(int percent, int px, int py)
+{
+    if (percent < 0) { percent = 0; }
+    if (percent > 100) { percent = 100; }
+
+    u8g_SetDefaultMidColor(&u8g);
+    u8g_DrawBox(&u8g, px, py, percent / (100/BATTERY_WIDTH), BATTERY_HEIGHT);
+
+    u8g_SetDefaultForegroundColor(&u8g);
+    u8g_DrawFrame(&u8g, px, py, BATTERY_WIDTH, BATTERY_HEIGHT);
+    u8g_DrawFrame(&u8g, px+BATTERY_WIDTH, py+2, 2, 4);
+}
 
 void draw(int pos)
 {
@@ -269,6 +303,8 @@ void draw(int pos)
 #define CFACE_RADIUS        34
     draw_clock_face(current_rtime.hour, current_rtime.min,
         CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
+
+    draw_battery(vbat_percent, 0, HEIGHT-BATTERY_HEIGHT-1);
     // int h;
     // for (h = 0; h < 12; ++h) {
     //     draw_clock_face(0, h*5, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);

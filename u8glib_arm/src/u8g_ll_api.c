@@ -557,10 +557,10 @@ uint8_t u8g_GetDefaultMidColor(u8g_t *u8g)
   if ( mode == U8G_MODE_R3G3B2 ) 
     return 0x06d;     /* gray: 01101101 */
   else if ( u8g_GetMode(u8g) == U8G_MODE_GRAY2BIT )
-    return 1;         /* low mid intensity */
+    return 2;         /* low mid intensity */
   else /* if ( u8g.getMode() == U8G_MODE_BW ) */
     return 1;         /* pixel on */
-  return 1;   /* default */
+  return 2;   /* default */
 }
 
 void u8g_SetDefaultMidColor(u8g_t *u8g)

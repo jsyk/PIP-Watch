@@ -1,6 +1,7 @@
 #include "btm.h"
 #include "main.h"
 #include "rtclock.h"
+#include "battery.h"
 
 #include <string.h>
 
@@ -209,8 +210,28 @@ void BluetoothModemTask( void *pvParameters )
 
         if (!buf) {
             buf = pvPortMalloc(sizeof(char) * 32);
-            k = 0;
+
+        #if 0
+            /* start ADC conversion by software */
+            // ADC_ClearFlag(ADC1, ADC_FLAG_EOC);
+            ADC_ClearFlag(ADC1, ADC_FLAG_STRT);
+            ADC_Cmd(ADC1, ENABLE);
+        #if 0
+            ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+            /* wait till the conversion starts */
+            while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET) { }
+        #endif
+            /* wait till the conversion ends */
+            while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) != SET) { }
+        #endif
+            
+            // k = 0;
             // k = itostr(buf, 32, RTC_GetCounter());
+            // k = itostr(buf, 32, ADC_GetConversionValue(ADC1));
+            // k = itostr(buf, 32, vbat_measured);
+            k = itostr(buf, 32, vbat_percent);
+
+            // ADC_ClearFlag(ADC1, ADC_FLAG_EOC);
         }
 
         buf[k++] = cChar;

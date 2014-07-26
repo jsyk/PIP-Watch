@@ -9,6 +9,8 @@ PA5     Out     SPI1_SCK
 PA6     In      GPIO Busy
 PA7     Out     SPI1_MOSI
 
+PB0     Ana     ADC_IN8 - Battery/5
+
 PB2     Out     GPIO nRES
 PB10    Out     GPIO EPD_DC
 
