@@ -12,6 +12,7 @@ QueueHandle_t adcValueQueue = NULL;
 
 int vbat_measured = 0;
 int vbat_percent = 0;
+int temp_celsius = 0;
 
 
 void ADC_IRQHandler(void)
@@ -52,6 +53,14 @@ void BatteryTask(void *pvParameters)
         int ad_vref = 0;
         xQueueReceive(adcValueQueue, &ad_vref, portMAX_DELAY);
 
+        /* measure temperature sensor voltage on channel 16 */
+        ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_71Cycles5);
+        ADC_ClearFlag(ADC1, ADC_FLAG_STRT);
+        ADC_Cmd(ADC1, ENABLE);
+        /* wait till the conversion ends */
+        int ad_vtemp = 0;
+        xQueueReceive(adcValueQueue, &ad_vtemp, portMAX_DELAY);
+
         /* measure battery voltage on channel 8 */
         ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 1, ADC_SampleTime_71Cycles5);
         ADC_ClearFlag(ADC1, ADC_FLAG_STRT);
@@ -66,10 +75,16 @@ void BatteryTask(void *pvParameters)
         /* digital value of ad_vref corresponds to 1.20 Volts */
         /* ad_vref/1.20 = ad_vbat/vbat */
         /* vbat = ad_vbat/ad_vref * 1.20 */
+        vbat_measured = ad_vbat * 1200 / ad_vref;
 
-        vbat_measured = ad_vbat * 120 / ad_vref;
-
+        /* minimum voltage=3.50V = 0%, maximum voltage=4.20V = 100% */
         vbat_percent = (vbat_measured - VBAT_0_PERCENT) * 100 / (VBAT_100_PERCENT - VBAT_0_PERCENT);
+
+        /* voltage on the temperature sensor in milivolts */
+        int vtemp_measured = ad_vtemp * 1200 / ad_vref;
+
+        /* 25°C = 1.43V, slope 4.3mV/C */
+        temp_celsius = (vtemp_measured-1430)*10/43 + 25;
 
         /* wait 4 seconds */
         vTaskDelay( ( TickType_t ) 4000 / portTICK_PERIOD_MS );

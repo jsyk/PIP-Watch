@@ -39,7 +39,7 @@ PRJDIR		= prj
 
 U8GSRC:=$(wildcard $(U8G)/*.c)
 
-SRC = main.c epd.c rtclock.c btm.c battery.c u8g_arm.c \
+SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c \
 	flash.c \
 	epd_imgs.c \
 	$(U8GSRC) \

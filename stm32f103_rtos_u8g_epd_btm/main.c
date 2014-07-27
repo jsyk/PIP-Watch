@@ -21,6 +21,7 @@
 #include "rtclock.h"
 #include "btm.h"
 #include "battery.h"
+#include "utils.h"
 
 /* The time between cycles of the 'check' task - which depends on whether the
 check task has detected an error or not. */
@@ -92,7 +93,7 @@ int main( void )
     xTaskCreate( BluetoothModemTask, "BTM", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     // epd Task
-	xTaskCreate( EPDDrawTask, "EpdDraw", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+	xTaskCreate( EPDDrawTask, "EpdDraw", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     xTaskCreate( BatteryTask, "Battery", configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
@@ -286,16 +287,38 @@ void draw_battery(int percent, int px, int py)
     u8g_SetDefaultForegroundColor(&u8g);
     u8g_DrawFrame(&u8g, px, py, BATTERY_WIDTH, BATTERY_HEIGHT);
     u8g_DrawFrame(&u8g, px+BATTERY_WIDTH, py+2, 2, 4);
+
+    u8g_SetFont(&u8g, u8g_font_helvR08);
+    char s[16];
+#if 0
+    /* print percents */
+    int k = itostr(s, 16, vbat_percent);
+    s[k] = '%';
+    s[k+1] = '\0';
+#else
+    /* print voltage */
+    int k = itostr(s, 16, vbat_measured / 1000);
+    s[k] = '.';
+    int vbat100 = (vbat_measured % 1000)/10;
+    if ((vbat_measured % 10) >= 5) { vbat100 += 1; }
+    k += 1 + itostr(s+k+1, 16-k-1, vbat100);
+    s[k] = 'V';
+    s[k+1] = '\0';
+#endif
+    u8g_DrawStr(&u8g,  px+BATTERY_WIDTH+4, py+BATTERY_HEIGHT, s);
 }
 
 void draw(int pos)
 {
+#define TXT_OFFS_Y      10
+#define TXT_LINESPC_Y   15
+    u8g_SetDefaultForegroundColor(&u8g);
     u8g_SetFont(&u8g, u8g_font_helvR12);
-    u8g_DrawStr(&u8g,  0, 15+15*0, hello_text[0]);
-    u8g_DrawStr(&u8g,  0, 15+15*1, hello_text[1]);
-    u8g_DrawStr(&u8g,  0, 15+15*2, hello_text[2]);
-    u8g_DrawStr(&u8g,  0, 15+15*3, hello_text[3]);
-    // u8g_DrawStr(&u8g,  0, 12+10*pos, "A B C D E F");
+
+    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*1, hello_text[0]);
+    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*2, hello_text[1]);
+    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*3, hello_text[2]);
+    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*4, hello_text[3]);
 
     /* clock face */
 #define CFACE_CENTER_X      136
@@ -304,11 +327,18 @@ void draw(int pos)
     draw_clock_face(current_rtime.hour, current_rtime.min,
         CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
 
-    draw_battery(vbat_percent, 0, HEIGHT-BATTERY_HEIGHT-1);
-    // int h;
-    // for (h = 0; h < 12; ++h) {
-    //     draw_clock_face(0, h*5, CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS);
-    // }
+    draw_battery(vbat_percent, 0, 0);
+
+#if 1
+    /* print temperature */
+    char s[8];
+    int k = itostr(s, 8, temp_celsius);
+    s[k] = 'o'; //0xB0;
+    s[k+1] = 'C';
+    s[k+2] = '\0';
+    u8g_SetFont(&u8g, u8g_font_helvR08);
+    u8g_DrawStr(&u8g,  70, 8, s);
+#endif
 }
 
 void EPDDrawTask(void *pvParameters)
