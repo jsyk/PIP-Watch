@@ -1,0 +1,7 @@
+EESchema-DOCLIB  Version 2.0  Date: Út 29. červenec 2014, 21:31:02 CEST
+#
+$CMP STM32F103C8T6
+D STM 32bit MCU, LQFP48, 32kB FLASH, 10kB SRAM
+$ENDCMP
+#
+#End Doc Library

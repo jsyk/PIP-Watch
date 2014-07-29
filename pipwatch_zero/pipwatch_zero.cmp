@@ -1,0 +1,108 @@
+Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Út 29. červenec 2014, 22:29:27 CEST
+
+BeginCmp
+TimeStamp = /53D800F2/53D80C9A;
+Reference = BAT201;
+ValeurCmp = BL4C;
+IdModule  = PIN_ARRAY_2X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D8065C;
+Reference = C201;
+ValeurCmp = 4u7;
+IdModule  = ;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80CAE;
+Reference = C202;
+ValeurCmp = 4u7;
+IdModule  = ;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80D18;
+Reference = C203;
+ValeurCmp = 4u7;
+IdModule  = ;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80D44;
+Reference = C204;
+ValeurCmp = 4u7;
+IdModule  = ;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80C1A;
+Reference = D201;
+ValeurCmp = STPS1L30U;
+IdModule  = DO-214AA(SMB);
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80D12;
+Reference = D202;
+ValeurCmp = STPS1L30U;
+IdModule  = DO-214AA(SMB);
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80AFA;
+Reference = R201;
+ValeurCmp = 10k;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80F08;
+Reference = R202;
+ValeurCmp = 47k;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80F21;
+Reference = R203;
+ValeurCmp = 47k;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D801BA;
+Reference = U201;
+ValeurCmp = MICRO-B_USB;
+IdModule  = MICRO-B_USB;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80590;
+Reference = U202;
+ValeurCmp = USB6BX;
+IdModule  = SO8N;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D801EE;
+Reference = U203;
+ValeurCmp = MCP73831;
+IdModule  = SOT23-5;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F2/53D80945;
+Reference = U204;
+ValeurCmp = LD59015C33R;
+IdModule  = sot323-5;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F5/53D8033E;
+Reference = U301;
+ValeurCmp = STM32F103RXT;
+IdModule  = lqfp64;
+EndCmp
+
+EndListe
