@@ -141,6 +141,10 @@ static void MX_GPIO_Init(void)
 }
 
 
+void EXTI15_10_IRQHandler(void)
+{
+    do { } while (1);
+}
 
 void epd_wait_nbusy(void)
 {

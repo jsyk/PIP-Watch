@@ -61,7 +61,7 @@ void EPDDrawTask(void *pvParameters);
 
 u8g_t u8g;
 
-char hello_text[4][32] = {"Hello World!", "", "", ""};
+char hello_text[4][32] = {"Pip-Watch", "  Zero  v0.1", "---------------", "Bluetooth ON."};
 
 QueueHandle_t toDisplayStrQueue = NULL;
 
@@ -195,6 +195,7 @@ static void prvSetupHardware( void )
 	/* APB1 Periph clock enable */
 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE );
 
+    /* --------------------------------------------------------------------------- */
     /* RTC */
 
     /* Enable access to backup registers and RTC */
@@ -231,7 +232,7 @@ static void prvSetupHardware( void )
 
     RTC_WaitForLastTask();
 
-
+    /* ------------------------------------------------------------------------ */
     /* ADC */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
@@ -247,7 +248,41 @@ static void prvSetupHardware( void )
     ADC_ITConfig(ADC1, ADC_IT_EOC, ENABLE);
     NVIC_InitStructure.NVIC_IRQChannel = ADC1_IRQn;
     NVIC_Init( &NVIC_InitStructure );
+
+    /* ------------------------------------------------------------------------ */
+    /* Buttons */
+    /*Configure GPIO pin : PB */
+    GPIO_InitTypeDef GPIO_InitStruct;
+#if 0
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_11;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    EXTI_InitTypeDef EXTI_InitStruct;
+    EXTI_InitStruct.EXTI_Line = EXTI_Line11;
+    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+    EXTI_Init(&EXTI_InitStruct);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource11);
+
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;
+    NVIC_Init( &NVIC_InitStructure );
+#endif
+
+    /* ------------------------------------------------------------------------ */
+    /* Motors */
+    /* Configure GPIO pin : PB13 Output */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_13;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+    /* set Motor_1 off */
+    GPIO_ResetBits(GPIOB, 1 << 13);
 }
+
 /*-----------------------------------------------------------*/
 
 void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
@@ -297,13 +332,13 @@ void draw_battery(int percent, int px, int py)
     s[k+1] = '\0';
 #else
     /* print voltage */
-    int k = itostr(s, 16, vbat_measured / 1000);
-    s[k] = '.';
-    int vbat100 = (vbat_measured % 1000)/10;
+    int vbat100 = vbat_measured / 10;
     if ((vbat_measured % 10) >= 5) { vbat100 += 1; }
-    k += 1 + itostr(s+k+1, 16-k-1, vbat100);
-    s[k] = 'V';
-    s[k+1] = '\0';
+    int k = itostr(s, 16, vbat100);
+    memmove(s+2, s+1, k-1);
+    s[1] = '.';
+    s[k+1] = 'V';
+    s[k+2] = '\0';
 #endif
     u8g_DrawStr(&u8g,  px+BATTERY_WIDTH+4, py+BATTERY_HEIGHT, s);
 }

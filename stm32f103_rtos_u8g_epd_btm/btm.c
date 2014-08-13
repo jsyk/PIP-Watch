@@ -181,11 +181,11 @@ void BluetoothModemTask( void *pvParameters )
             while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) != SET) { }
         #endif
             
-            // k = 0;
+            k = 0;
             // k = itostr(buf, 32, RTC_GetCounter());
             // k = itostr(buf, 32, ADC_GetConversionValue(ADC1));
             // k = itostr(buf, 32, vbat_measured);
-            k = itostr(buf, 32, vbat_percent);
+            // k = itostr(buf, 32, vbat_percent);
 
             // ADC_ClearFlag(ADC1, ADC_FLAG_EOC);
         }
@@ -215,6 +215,12 @@ void BluetoothModemTask( void *pvParameters )
             } else {
                 // fail; ignore, keep buffer
             }
+
+            // motor demo
+            GPIO_SetBits(GPIOB, 1 << 13);
+            vTaskDelay( ( TickType_t ) 300 / portTICK_PERIOD_MS );
+            GPIO_ResetBits(GPIOB, 1 << 13);
+
             k = 0;
             xSerialPutChar( comBTM, '\n', 0 );
         }

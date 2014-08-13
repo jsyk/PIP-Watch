@@ -61,6 +61,7 @@ SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c \
  	$(STLIB)/src/stm32f10x_pwr.c \
  	$(STLIB)/src/stm32f10x_bkp.c \
  	$(STLIB)/src/stm32f10x_adc.c \
+ 	$(STLIB)/src/stm32f10x_exti.c \
  	$(STLIB)/src/system_stm32f10x.c \
  	$(STLIB)/src/misc.c
 
@@ -167,8 +168,8 @@ stflash: $(NAME)_flash.bin
 	st-flash write $(NAME)_flash.bin 0x08000000
 
 ocdserver:
-	openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt"
-	# openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt" -c "reset halt"
+	#openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt"
+	openocd -f interface/stlink-v2.cfg -f target/stm32f1x_stlink.cfg -c "init" -c "halt" -c "reset halt"
 
 ocdgdb: $(NAME)_flash.elf
 	arm-none-eabi-gdb --eval-command="target remote localhost:3333" $(NAME)_flash.elf
