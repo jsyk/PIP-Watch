@@ -1,4 +1,4 @@
-update=Út 29. červenec 2014, 22:24:41 CEST
+update=So 23. srpen 2014, 23:42:47 CEST
 version=1
 last_client=cvpcb
 [pcbnew]
@@ -140,11 +140,15 @@ LibName116=w_switch
 LibName117=w_to
 LibName118=w_vacuum
 LibName119=/home/jara/elektronika/kicadlibrary/open-project
+LibName120=misc_epd
 LibDir=
 [general]
 version=1
 [eeschema]
 version=1
+PageLayoutDescrFile=
+SubpartIdSeparator=0
+SubpartFirstId=65
 LibDir=
 NetFmtName=
 RptD_X=0
@@ -227,6 +231,7 @@ LibName72=w_vacuum
 LibName73=stm32-extra
 LibName74=/home/jara/elektronika/kicadlibrary/open-project
 LibName75=misc_pip
+LibName76=misc_epd
 [cvpcb]
 version=1
 NetIExt=net

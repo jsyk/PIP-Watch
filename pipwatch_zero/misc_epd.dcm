@@ -1,0 +1,16 @@
+EESchema-DOCLIB  Version 2.0  Date: Čt 15. květen 2014, 20:37:57 CEST
+#
+$CMP DIODE-SW
+D Diode simple
+K DEV DIODE
+$ENDCMP
+#
+$CMP MOSFET_N
+F transistors/mos/*.*
+$ENDCMP
+#
+$CMP MOSFET_N_SC70_1G_2D_3S
+F transistors/mos/*.*
+$ENDCMP
+#
+#End Doc Library
