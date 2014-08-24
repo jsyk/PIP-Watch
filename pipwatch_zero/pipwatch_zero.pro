@@ -1,4 +1,4 @@
-update=So 23. srpen 2014, 23:42:47 CEST
+update=Ne 24. srpen 2014, 20:25:06 CEST
 version=1
 last_client=cvpcb
 [pcbnew]
@@ -141,6 +141,7 @@ LibName117=w_to
 LibName118=w_vacuum
 LibName119=/home/jara/elektronika/kicadlibrary/open-project
 LibName120=misc_epd
+LibName121=misc_pip
 LibDir=
 [general]
 version=1
