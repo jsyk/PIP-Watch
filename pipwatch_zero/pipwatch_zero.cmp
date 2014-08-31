@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Ne 24. srpen 2014, 23:03:43 CEST
+Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Ne 31. srpen 2014, 15:26:32 CEST
 
 BeginCmp
 TimeStamp = /53D800F2/53D80C9A;
@@ -305,7 +305,7 @@ BeginCmp
 TimeStamp = /53D800F5/53FA92AC;
 Reference = P403;
 ValeurCmp = CONN_10;
-IdModule  = pin_strip_10;
+IdModule  = PINARRAY_10P_2MM_SMD;
 EndCmp
 
 BeginCmp
@@ -382,48 +382,6 @@ BeginCmp
 TimeStamp = /53D800F5/53FA7BC7;
 Reference = R402;
 ValeurCmp = 33R;
-IdModule  = SM0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /53D800F5/53D945E7;
-Reference = R403;
-ValeurCmp = 330;
-IdModule  = SM0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /53D800F5/53D94639;
-Reference = R404;
-ValeurCmp = 470;
-IdModule  = SM0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /53D800F5/53D9461B;
-Reference = R405;
-ValeurCmp = 330;
-IdModule  = SM0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /53D800F5/53D94621;
-Reference = R406;
-ValeurCmp = 330;
-IdModule  = SM0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /53D800F5/53D9464B;
-Reference = R407;
-ValeurCmp = 470;
-IdModule  = SM0603;
-EndCmp
-
-BeginCmp
-TimeStamp = /53D800F5/53D94627;
-Reference = R408;
-ValeurCmp = 330;
 IdModule  = SM0603;
 EndCmp
 

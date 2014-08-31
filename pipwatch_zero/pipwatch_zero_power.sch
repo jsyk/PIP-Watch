@@ -542,12 +542,4 @@ Text Notes 5000 2950 0    60   ~ 0
 Battery Charger
 Text Notes 8750 2950 0    60   ~ 0
 Low-Drop Regulator
-Text HLabel 1800 3900 2    60   Output ~ 0
-USBID
-Wire Wire Line
-	1500 3300 1600 3300
-Wire Wire Line
-	1600 3300 1600 3900
-Wire Wire Line
-	1600 3900 1800 3900
 $EndSCHEMATC
