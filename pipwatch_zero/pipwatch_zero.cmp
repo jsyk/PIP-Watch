@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Ne 24. srpen 2014, 21:27:58 CEST
+Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Ne 24. srpen 2014, 23:03:43 CEST
 
 BeginCmp
 TimeStamp = /53D800F2/53D80C9A;
@@ -291,7 +291,7 @@ BeginCmp
 TimeStamp = /53D800F5/53D941FB;
 Reference = P401;
 ValeurCmp = CONN_1;
-IdModule  = 1PIN_SMD;
+IdModule  = 1PIN_S_SMD;
 EndCmp
 
 BeginCmp
