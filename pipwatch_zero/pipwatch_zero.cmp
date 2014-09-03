@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = Ne 31. srpen 2014, 15:26:32 CEST
+Cmp-Mod V01 Created by CvPcb (2013-june-11)-stable date = St 3. září 2014, 21:16:56 CEST
 
 BeginCmp
 TimeStamp = /53D800F2/53D80C9A;
@@ -298,7 +298,7 @@ BeginCmp
 TimeStamp = /53D800F5/53FA8779;
 Reference = P402;
 ValeurCmp = CONN_2;
-IdModule  = pin_strip_2;
+IdModule  = do214aa;
 EndCmp
 
 BeginCmp
@@ -432,6 +432,20 @@ TimeStamp = /53D800F5/53D94B4B;
 Reference = SW404;
 ValeurCmp = FSM4JSMATR;
 IdModule  = PUSH_SMD_FSM4JSMATR;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F5/540768DA;
+Reference = SW405;
+ValeurCmp = SW_PUSH;
+IdModule  = PUSH_SMD_TS1107GS;
+EndCmp
+
+BeginCmp
+TimeStamp = /53D800F5/54077385;
+Reference = SW406;
+ValeurCmp = SW_PUSH;
+IdModule  = PUSH_SMD_TS1107GS;
 EndCmp
 
 BeginCmp

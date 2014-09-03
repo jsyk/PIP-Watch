@@ -81,9 +81,9 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 2 5
-Title ""
-Date "31 aug 2014"
-Rev ""
+Title "PIPWATCH ZERO"
+Date "3 sep 2014"
+Rev "HW02"
 Comp ""
 Comment1 ""
 Comment2 ""
@@ -281,7 +281,7 @@ U 1 1 53D80C9A
 P 6700 3850
 F 0 "BAT201" H 6900 3900 50  0000 C CNN
 F 1 "BL4C" H 6900 3800 50  0000 C CNN
-F 2 "do214aa" V 6850 3400 60  0001 C CNN
+F 2 "do214aa" V 6850 3400 60  0000 C CNN
 F 3 "" H 6700 3850 60  0000 C CNN
 	1    6700 3850
 	1    0    0    -1  

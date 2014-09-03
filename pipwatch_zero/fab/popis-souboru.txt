@@ -1,0 +1,7 @@
+vrstva TOP  		top.gbr
+vrstva BOT 		bot.gbr
+vrstva maska TOP 	smt.gbr
+vrstva maska BOT 	smb.gbr
+vrstva potisk TOP 	plt.gbr
+vrstva OBRYS 		mil.gbr
+vrstva prokovene vrtani 	pth.exc
