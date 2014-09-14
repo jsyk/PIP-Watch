@@ -1,0 +1,23 @@
+
+PA0     In      USART2_CTS
+PA1     Out     USART2_RTS
+PA2     Out     USART2_TX
+PA3     In      USART2_RX
+
+PA4     Out     GPIO EPD_nCS
+PA5     Out     SPI1_SCK
+PA6     In      GPIO Busy
+PA7     Out     SPI1_MOSI
+
+PB0     Ana     ADC_IN8 - Battery/5
+
+PB2     Out     GPIO nRES
+PB10    Out     GPIO EPD_DC
+
+PB11    In      GPIO Btn0
+
+PB13    Out     GPIO/TIM1_CH1N Motor_1
+
+------
+PC13    Out     Tamper-RTC
+

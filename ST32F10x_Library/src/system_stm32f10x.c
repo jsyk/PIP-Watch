@@ -108,11 +108,11 @@
  #define SYSCLK_FREQ_24MHz  24000000
 #else
 /* #define SYSCLK_FREQ_HSE    HSE_VALUE */
-/* #define SYSCLK_FREQ_24MHz  24000000 */ 
+/* #define SYSCLK_FREQ_24MHz  24000000 */
 /* #define SYSCLK_FREQ_36MHz  36000000 */
 /* #define SYSCLK_FREQ_48MHz  48000000 */
 /* #define SYSCLK_FREQ_56MHz  56000000 */
-#define SYSCLK_FREQ_72MHz  72000000
+/* #define SYSCLK_FREQ_72MHz  72000000   */  // Orig
 #endif
 
 /*!< Uncomment the following line if you need to use external SRAM mounted
@@ -256,6 +256,7 @@ void SystemInit (void)
     SystemInit_ExtMemCtl(); 
   #endif /* DATA_IN_ExtSRAM */
 #endif 
+
 
   /* Configure the System clock frequency, HCLK, PCLK2 and PCLK1 prescalers */
   /* Configure the Flash Latency cycles and enable prefetch buffer */
@@ -1008,6 +1009,8 @@ static void SetSysClockTo72(void)
     HSEStatus = (uint32_t)0x00;
   }  
 
+  // do { } while (1);     /* STOP */
+
   if (HSEStatus == (uint32_t)0x01)
   {
     /* Enable Prefetch Buffer */
@@ -1026,6 +1029,8 @@ static void SetSysClockTo72(void)
     
     /* PCLK1 = HCLK */
     RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV2;
+
+    // do { } while (1);     /* STOP */
 
 #ifdef STM32F10X_CL
     /* Configure PLLs ------------------------------------------------------*/
@@ -1056,14 +1061,20 @@ static void SetSysClockTo72(void)
     RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
 #endif /* STM32F10X_CL */
 
+    // do { } while (1);     /* STOP */
+
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
+
+    // do { } while (1);     /* STOP - NOT REACHED! */
 
     /* Wait till PLL is ready */
     while((RCC->CR & RCC_CR_PLLRDY) == 0)
     {
     }
     
+    // do { } while (1);     /* STOP - NOT REACHED! */
+
     /* Select PLL as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
     RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;    
