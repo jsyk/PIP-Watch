@@ -34,7 +34,7 @@
 
 
 struct led_state_t {
-    /* colour intensity, 0-255 */
+    /* colour intensity using LED_INTENS_* */
     uint8_t ri, gi, bi;
 };
 
@@ -43,8 +43,8 @@ struct led_state_t {
 #define     LED1        1
 #define     LED2        2
 
-struct led_state_t leds_st[3];
 
+void LEDs_Init(void);
 void LEDsTask(void *pvParameters);
 void LEDs_AllOff();
 

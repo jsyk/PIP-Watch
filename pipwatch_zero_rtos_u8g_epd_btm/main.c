@@ -91,20 +91,9 @@ int main( void )
     current_rtime.min = 20;
     current_rtime.hour = 23;
 
-    LEDs_AllOff();
+    LEDs_Init();
     LEDs_Set(LED0, LED_INTENS_50, LED_INTENS_0, LED_INTENS_0);
 
-    // leds_st[0].ri = LED_INTENS_50;
-    // leds_st[0].gi = LED_INTENS_50;
-    // leds_st[0].bi = LED_INTENS_50;
-
-    // leds_st[1].ri = LED_INTENS_25;
-    // leds_st[1].gi = LED_INTENS_100;
-    // leds_st[1].bi = LED_INTENS_25;
-
-    // leds_st[2].ri = LED_INTENS_0;
-    // leds_st[2].gi = LED_INTENS_25;
-    // leds_st[2].bi = LED_INTENS_100;
 
 	/* Create the 'echo' task, which is also defined within this file. */
     xTaskCreate( BluetoothModemTask, "BTM", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
@@ -133,7 +122,7 @@ int main( void )
 /* FreeRTOS: User defined function executed from within the idle task. */
 void vApplicationIdleHook( void )
 {
-#if 0
+#if 1
     /* Activate the sleep mode - wait for next interrupt. */
     /* Power modes must be configured first!! */
     __WFI();
@@ -259,12 +248,12 @@ static void prvSetupHardware( void )
     /* Enable access to backup registers and RTC */
     PWR_BackupAccessCmd(ENABLE);
 
-#if 0
     /* Reset backup domain; this allows one-time configuration of RTC clock below. */
     BKP_DeInit();
     /* Enable LSE extenal xtal osci */
     RCC_LSEConfig(RCC_LSE_ON);
     
+#if 1
     /* wait until LSE xtal osci is stable */
     while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET) { }
     /* Set RTC clock source = external 32.768kHz xtal */
