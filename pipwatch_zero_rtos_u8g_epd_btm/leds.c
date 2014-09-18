@@ -92,6 +92,7 @@ void LEDsTask(void *pvParameters)
         }
 
 
+        /* any changes in LEDs? */
         int iled_chng;
         if (xQueueReceive(toLEDsQueue, &iled_chng, 0) == pdTRUE) {
             /* LED state changed! */

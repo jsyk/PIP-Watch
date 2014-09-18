@@ -88,8 +88,8 @@ int main( void )
     toDisplayStrQueue = xQueueCreate(16, sizeof(char *));
 
     current_rtime.sec = 0;
-    current_rtime.min = 20;
-    current_rtime.hour = 23;
+    current_rtime.min = 39;
+    current_rtime.hour = 21;
 
     LEDs_Init();
     LEDs_Set(LED0, LED_INTENS_50, LED_INTENS_0, LED_INTENS_0);
