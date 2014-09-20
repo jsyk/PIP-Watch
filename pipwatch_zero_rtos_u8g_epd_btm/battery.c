@@ -15,6 +15,10 @@ int vbat_percent = 0;
 int temp_celsius = 0;
 
 
+/* milivolts on the temperature sensor ADC at 25 dgC */
+#define VTEMP_25C           1430
+
+
 void ADC_IRQHandler(void)
 {
     long xHigherPriorityTaskWoken = pdFALSE;
@@ -84,7 +88,7 @@ void BatteryTask(void *pvParameters)
         int vtemp_measured = ad_vtemp * 1200 / ad_vref;
 
         /* 25°C = 1.43V, slope 4.3mV/C */
-        temp_celsius = (vtemp_measured-1430)*10/43 + 25;
+        temp_celsius = (VTEMP_25C-vtemp_measured)*10/43 + 25;
 
         /* wait 4 seconds */
         vTaskDelay( ( TickType_t ) 4000 / portTICK_PERIOD_MS );

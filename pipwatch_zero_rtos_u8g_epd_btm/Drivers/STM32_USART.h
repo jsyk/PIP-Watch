@@ -98,6 +98,9 @@ signed long xSerialPutChar( long lPort, char cOutChar, TickType_t xBlockTime );
  */
 signed long xSerialGetChar( long lPort, char *pcRxedChar, TickType_t xBlockTime );
 
+/* peek at a character from queue, but do not removed it */
+signed long xSerialPeekChar( long lPort, char *pcRxedChar, TickType_t xBlockTime );
+
 /*
  * Send a string of characters to a COM port.  As supplied 2 COM ports are 
  * supported, so ulPort can be 0 or 1.  Note that COM 0 is in effect USART1 in 

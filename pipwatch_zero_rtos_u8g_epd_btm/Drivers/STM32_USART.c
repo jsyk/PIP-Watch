@@ -233,7 +233,7 @@ GPIO_InitTypeDef GPIO_InitStructure;
 
 signed long xSerialGetChar( long lPort, char *pcRxedChar, TickType_t xBlockTime )
 {
-long lReturn = pdFAIL;
+    long lReturn = pdFAIL;
 
 	if( lPort < serNUM_COM_PORTS ) 
 	{
@@ -245,6 +245,26 @@ long lReturn = pdFAIL;
 
 	return lReturn;
 }
+
+
+/*-----------------------------------------------------------*/
+
+signed long xSerialPeekChar( long lPort, char *pcRxedChar, TickType_t xBlockTime )
+{
+    long lReturn = pdFAIL;
+
+    if( lPort < serNUM_COM_PORTS ) 
+    {
+        if( xQueuePeek( xRxedChars[ lPort ], pcRxedChar, xBlockTime ) == pdPASS )
+        {
+            lReturn = pdPASS;
+        }
+    }
+
+    return lReturn;
+}
+
+
 /*-----------------------------------------------------------*/
 
 long lSerialPutString( long lPort, const char * const pcString, unsigned long ulStringLength )

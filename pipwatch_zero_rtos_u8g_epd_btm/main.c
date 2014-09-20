@@ -22,6 +22,7 @@
 #include "btm.h"
 #include "battery.h"
 #include "leds.h"
+#include "buttons.h"
 #include "utils.h"
 
 
@@ -63,7 +64,7 @@ void EPDDrawTask(void *pvParameters);
 
 u8g_t u8g;
 
-char hello_text[4][32] = {"Pip-Watch", "  Zero  v0.1", "---------------", "Bluetooth ON."};
+char hello_text[4][32] = {"Pip-Watch", "  Zero  v0.1", "---------------", ""};
 
 QueueHandle_t toDisplayStrQueue = NULL;
 
@@ -104,6 +105,8 @@ int main( void )
     xTaskCreate( BatteryTask, "Battery", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     xTaskCreate( LEDsTask, "LEDs", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+
+    xTaskCreate( ButtonsTask, "Buttons", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
 	/* Create the 'check' task, which is also defined within this file. */
 	// xTaskCreate( prvCheckTask, "Check", configMINIMAL_STACK_SIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
@@ -250,15 +253,22 @@ static void prvSetupHardware( void )
 
     /* Reset backup domain; this allows one-time configuration of RTC clock below. */
     BKP_DeInit();
+
     /* Enable LSE extenal xtal osci */
     RCC_LSEConfig(RCC_LSE_ON);
     
-#if 1
+    /* FIXME: LSE SOMETIMES STOPS WORKING !! - TEMPERATURE ?? */
+#if 0
     /* wait until LSE xtal osci is stable */
     while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET) { }
     /* Set RTC clock source = external 32.768kHz xtal */
     RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
-    // RCC_RTCCLKConfig(RCC_RTCCLKSource_HSE_Div128);
+#else
+
+    RCC_RTCCLKConfig(RCC_RTCCLKSource_HSE_Div128);
+
+#endif
+
     /* Enable RTC clock after it has been selected */
     RCC_RTCCLKCmd(ENABLE);
 
@@ -266,9 +276,16 @@ static void prvSetupHardware( void )
     RTC_WaitForSynchro();
     RTC_WaitForLastTask();
 
-    /* set prescaler: divide by 32768 -> generate 1Hz irq */
+#if 0
+    /* set prescaler: divide 32.768kHz LSE XTAL clock by 32768 -> generate 1Hz irq */
     RTC_SetPrescaler(32768);
+#else
+    /* set prescaler: divide 8MHz/128 HSE clock by 62500 -> generate 1Hz irq */
+    RTC_SetPrescaler(62500);
+#endif
+
     RTC_WaitForLastTask();
+
     /* enable RTC irq */
     RTC_ITConfig(RTC_IT_SEC, ENABLE);
 
@@ -279,7 +296,6 @@ static void prvSetupHardware( void )
     NVIC_Init( &NVIC_InitStructure );
 
     RTC_WaitForLastTask();
-#endif
 
     /* ------------------------------------------------------------------------ */
     /* ADC */
@@ -302,35 +318,45 @@ static void prvSetupHardware( void )
 
     /* ------------------------------------------------------------------------ */
     /* Buttons */
-    /*Configure GPIO pin : PB */
+    /* Configure GPIO pins : PB5,6,7 = Buttons 0, 1, 2 */
     GPIO_InitTypeDef GPIO_InitStruct;
-#if 0
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    /* USBPOW (PA9) input pull-down */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPD;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* configure interrupts from buttons: EXTI 5, 6, 7  */
     EXTI_InitTypeDef EXTI_InitStruct;
-    EXTI_InitStruct.EXTI_Line = EXTI_Line5 | EXTI_Line6 | EXTI_Line7;
+    EXTI_InitStruct.EXTI_Line = EXTI_Line5 | EXTI_Line6 | EXTI_Line7 /*| EXTI_Line9*/;
     EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
     EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
     EXTI_InitStruct.EXTI_LineCmd = ENABLE;
     EXTI_Init(&EXTI_InitStruct);
 
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource5);
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource6);
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource7);
+    /* set EXTI sources */
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource5); // BTN0
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource6); // BTN1
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource7); // BTN2
+    // GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9); // USBPOW
 
+#if 0
+    /* all the interrupts go to the EXTI9_5_IRQn IRQ-line */
     NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
     NVIC_Init( &NVIC_InitStructure );
 #endif
-
+    
     /* ------------------------------------------------------------------------ */
     /* LEDs */
     /* Configure GPIO pin : PC10=LEDRK, PC11=LEDGK, PC12=LEDBK Output */
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOC, &GPIO_InitStruct);
     /* set cathodes HI */
     GPIO_SetBits(GPIOC, GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12);
@@ -338,7 +364,7 @@ static void prvSetupHardware( void )
     /* Configure GPIO pin : PD2=LED1A,  Output */
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_2;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOD, &GPIO_InitStruct);
     /* set anode LO */
     GPIO_ResetBits(GPIOD, GPIO_Pin_2);
@@ -346,10 +372,17 @@ static void prvSetupHardware( void )
     /* Configure GPIO pin : PB8=LED2A, PB9=LED3A, Output */
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
     /* set anode LO */
     GPIO_ResetBits(GPIOB, GPIO_Pin_8 | GPIO_Pin_9);
+
+    /* The CHARGEBLUE LED (PA8): Set high-impedence floating -> no current  */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_8;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 
 
     /* ------------------------------------------------------------------------ */
@@ -442,7 +475,8 @@ void draw(int pos)
 #define TXT_OFFS_Y      10
 #define TXT_LINESPC_Y   15
     u8g_SetDefaultForegroundColor(&u8g);
-    u8g_SetFont(&u8g, u8g_font_helvR12);
+    // u8g_SetFont(&u8g, u8g_font_helvR12);
+    u8g_SetFont(&u8g, u8g_font_helvR08);
 
     u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*1, hello_text[0]);
     u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*2, hello_text[1]);

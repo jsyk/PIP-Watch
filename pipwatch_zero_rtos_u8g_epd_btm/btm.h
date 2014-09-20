@@ -10,6 +10,12 @@
 #define BTM_Reset_Pin               GPIO_Pin_4
 
 
+#define BTMST_NonConfigured         0
+#define BTMST_Configured            1
+#define BTMST_Listening             2
+#define BTMST_Connected             3
+
+
 void BluetoothModemTask( void *pvParameters );
 
 #endif
