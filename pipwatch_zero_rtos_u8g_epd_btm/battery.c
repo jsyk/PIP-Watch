@@ -13,6 +13,7 @@ QueueHandle_t adcValueQueue = NULL;
 int vbat_measured = 0;
 int vbat_percent = 0;
 int temp_celsius = 0;
+char batt_state = BATTERY_UNKNOWN;
 
 
 /* milivolts on the temperature sensor ADC at 25 dgC */
@@ -89,6 +90,28 @@ void BatteryTask(void *pvParameters)
 
         /* 25°C = 1.43V, slope 4.3mV/C */
         temp_celsius = (VTEMP_25C-vtemp_measured)*10/43 + 25;
+
+        /* battery state */
+        char new_batt_state = BATTERY_UNKNOWN;
+        if (GPIO_ReadInputDataBit(USBPOW_Port, USBPOW_Pin) == Bit_SET) {
+            /* USB power is ON */
+            if (GPIO_ReadInputDataBit(CHARGESTAT_Port, CHARGESTAT_Pin) == Bit_SET) {
+                /* No charging -> battery full */
+                new_batt_state = BATTERY_FULL;
+            } else {
+                /* Charging */
+                new_batt_state = BATTERY_CHARGING;
+            }
+        } else {
+            /* no USB poer */
+            new_batt_state = BATTERY_DISCHARGING;
+        }
+
+        if (batt_state != new_batt_state) {
+            batt_state = new_batt_state;
+            char *buf = NULL;
+            xQueueSend(toDisplayStrQueue, &buf, 0);
+        }
 
         /* wait 4 seconds */
         vTaskDelay( ( TickType_t ) 4000 / portTICK_PERIOD_MS );

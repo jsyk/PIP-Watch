@@ -147,3 +147,14 @@ void LEDs_Set(int iled, uint8_t ir, uint8_t ig, uint8_t ib)
 
     xQueueSend(toLEDsQueue, &iled, 0);
 }
+
+void LEDs_SetFromISR(int iled, uint8_t ir, uint8_t ig, uint8_t ib)
+{
+    if (iled >= 0 && iled <= 2) {
+        leds_st[iled].ri = ir;
+        leds_st[iled].gi = ig;
+        leds_st[iled].bi = ib;
+    }
+
+    // xQueueSendFromISR(toLEDsQueue, &iled, 0);
+}

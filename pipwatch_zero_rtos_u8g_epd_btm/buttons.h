@@ -6,7 +6,7 @@
 
 struct button_state_t {
 	/* current button state: 0 (released) or 1 (pressed) */
-	char st;
+	int st;
 	/* the cpu-tick when the current state was put down */
 	TickType_t tick;
 };
@@ -20,9 +20,9 @@ struct button_state_t {
 #define BTN1_Port	GPIOB
 #define BTN2_Port	GPIOB
 
-#define BTN0_Pin	GPIO_PinSource5
-#define BTN1_Pin	GPIO_PinSource6
-#define BTN2_Pin	GPIO_PinSource7
+#define BTN0_Pin	GPIO_Pin_5
+#define BTN1_Pin	GPIO_Pin_6
+#define BTN2_Pin	GPIO_Pin_7
 
 
 /* dead time in milliseconds */

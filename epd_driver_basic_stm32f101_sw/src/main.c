@@ -96,7 +96,7 @@ void somedelay(int tm)
 
 void epd_wait_nbusy(void)
 {
-    while (GPIO_ReadInputDataBit(GPIOA, EPD_Pin_BUSY)) { }
+    while (GPIO_ReadInputDataBit(GPIOA, EPD_Pin_BUSY) == Bit_SET) { }
 }
 
 void epd_sendbyte(uint8_t dc, uint8_t dt)

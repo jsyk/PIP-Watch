@@ -139,6 +139,7 @@ void vApplicationIdleHook( void )
 static void prvSetupHardware( void )
 {
     NVIC_InitTypeDef NVIC_InitStructure;
+    GPIO_InitTypeDef GPIO_InitStruct;
 
 #if 1
 	/* RCC system reset(for debug purpose). */
@@ -157,8 +158,8 @@ static void prvSetupHardware( void )
 #endif
 
     /* HCLK = SYSCLK. */
-    // RCC_HCLKConfig( RCC_SYSCLK_Div1 );
-	RCC_HCLKConfig( RCC_SYSCLK_Div2 );     // HCLK=8MHz
+    RCC_HCLKConfig( RCC_SYSCLK_Div1 );          // HCLK=8MHz
+	// RCC_HCLKConfig( RCC_SYSCLK_Div2 );     
 
     /* NOTE: update the constant configCPU_CLOCK_HZ to the correct SysTick (HCLK) operating frequency! */
 
@@ -182,8 +183,9 @@ static void prvSetupHardware( void )
     // RCC_PLLConfig( RCC_PLLSource_HSI_Div2, RCC_PLLMul_9 );     // 8/2 * 9 = 36 MHz
     // RCC_PLLConfig( RCC_PLLSource_PREDIV1, RCC_PLLMul_9 );     // 8 * 9 = 72 MHz (ok)
     // RCC_PLLConfig( RCC_PLLSource_PREDIV1, RCC_PLLMul_2 );     // 8 * 2 = 16 MHz (ok) - MD_VL
-    RCC_PLLConfig( RCC_PLLSource_HSE_Div1, RCC_PLLMul_2 );      // 8 * 2 = 16 MHz
+    // RCC_PLLConfig( RCC_PLLSource_HSE_Div1, RCC_PLLMul_2 );      // 8 * 2 = 16 MHz
     // RCC_PLLConfig( RCC_PLLSource_HSI_Div2, RCC_PLLMul_4 );      // 8/2 * 4 = 16 MHz
+    RCC_PLLConfig( RCC_PLLSource_HSE_Div2, RCC_PLLMul_2 );      // 8 / 2 * 2 = 8 MHz
 
     // do { } while (1);
     /* Enable PLL. */
@@ -237,8 +239,24 @@ static void prvSetupHardware( void )
 
     /* --------------------------------------------------------------------------- */
 
-	/* Initialise the IO used for the LED outputs. */
-	// vParTestInitialise();
+    /* Unused pins - pull up */
+    /* GPIOA: PA10 */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+    /* GPIOB: PB12 PB14 PB15 */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_14 | GPIO_Pin_15;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+    /* GPIOC: PC0 PC5 PC6 PC7 PC8 PC9 */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    /* ------------------------------------------------------------------------ */
 
     /* Init SPI and GPIO for EPD */
     epdInitInterface();
@@ -319,17 +337,22 @@ static void prvSetupHardware( void )
     /* ------------------------------------------------------------------------ */
     /* Buttons */
     /* Configure GPIO pins : PB5,6,7 = Buttons 0, 1, 2 */
-    GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USBPOW (PA9) input pull-down */
-    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9;
+    GPIO_InitStruct.GPIO_Pin = USBPOW_Pin;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPD;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_Init(USBPOW_Port, &GPIO_InitStruct);
+
+    /* CHARGESTAT (PB11) input pull-up */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_11;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* configure interrupts from buttons: EXTI 5, 6, 7  */
     EXTI_InitTypeDef EXTI_InitStruct;
@@ -345,7 +368,7 @@ static void prvSetupHardware( void )
     GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource7); // BTN2
     // GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9); // USBPOW
 
-#if 0
+#if 1
     /* all the interrupts go to the EXTI9_5_IRQn IRQ-line */
     NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
     NVIC_Init( &NVIC_InitStructure );
@@ -387,14 +410,14 @@ static void prvSetupHardware( void )
 
     /* ------------------------------------------------------------------------ */
     /* Motors */
-#if 0
+#if 1
     /* Configure GPIO pin : PB13 Output */
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_13;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
     /* set Motor_1 off */
-    GPIO_ResetBits(GPIOB, 1 << 13);
+    GPIO_ResetBits(GPIOB, GPIO_Pin_13);
 #endif
 
 
@@ -408,6 +431,9 @@ static void prvSetupHardware( void )
     GPIO_Init(BTM_Reset_Port, &GPIO_InitStruct);
     GPIO_SetBits(BTM_Reset_Port, BTM_Reset_Pin);
 #endif
+
+    
+
 }
 
 /*-----------------------------------------------------------*/
@@ -465,7 +491,8 @@ void draw_battery(int percent, int px, int py)
     memmove(s+2, s+1, k-1);
     s[1] = '.';
     s[k+1] = 'V';
-    s[k+2] = '\0';
+    s[k+2] = batt_state;
+    s[k+3] = '\0';
 #endif
     u8g_DrawStr(&u8g,  px+BATTERY_WIDTH+4, py+BATTERY_HEIGHT, s);
 }

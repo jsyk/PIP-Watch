@@ -49,5 +49,6 @@ void LEDsTask(void *pvParameters);
 void LEDs_AllOff();
 
 void LEDs_Set(int iled, uint8_t ir, uint8_t ig, uint8_t ib);
+void LEDs_SetFromISR(int iled, uint8_t ir, uint8_t ig, uint8_t ib);
 
 #endif

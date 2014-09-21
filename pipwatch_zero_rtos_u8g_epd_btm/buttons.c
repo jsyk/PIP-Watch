@@ -5,6 +5,7 @@
 #include "stm32f10x_it.h"
 #include "task.h"
 #include "queue.h"
+#include "leds.h"
 #include <string.h>
 
 
@@ -21,19 +22,19 @@ void EXTI9_5_IRQHandler(void)
 {
     long xHigherPriorityTaskWoken = pdFALSE;
 
-    /* clear IRQ penging bits */
-    // EXTI_ClearITPendingBit(EXTI_Line5 | EXTI_Line6 | EXTI_Line7 | EXTI_Line8 | EXTI_Line9);
-    EXTI_ClearITPendingBit(EXTI->PR);
-
-
-    TickType_t ctick = xTaskGetTickCount();
+    TickType_t ctick = xTaskGetTickCountFromISR();
     
     /* get current button state */
-    char btn[3];
-    btn[0] = (GPIO_ReadInputDataBit(BTN0_Port, BTN0_Pin)) ? 0 : 1;
-    btn[1] = (GPIO_ReadInputDataBit(BTN1_Port, BTN1_Pin)) ? 0 : 1;
-    btn[2] = (GPIO_ReadInputDataBit(BTN2_Port, BTN2_Pin)) ? 0 : 1;
+    int btn[3];
+    btn[0] = (GPIO_ReadInputDataBit(BTN0_Port, BTN0_Pin) == Bit_SET) ? 0 : 1;
+    btn[1] = (GPIO_ReadInputDataBit(BTN1_Port, BTN1_Pin) == Bit_SET) ? 0 : 1;
+    btn[2] = (GPIO_ReadInputDataBit(BTN2_Port, BTN2_Pin) == Bit_SET) ? 0 : 1;
 
+    // LEDs_SetFromISR(LED1,
+    //         (btn[0]) ? LED_INTENS_100 : LED_INTENS_0, 
+    //         (btn[1]) ? LED_INTENS_100 : LED_INTENS_0, 
+    //         (btn[2]) ? LED_INTENS_100 : LED_INTENS_0);
+        
     for (int i = 0; i < 3; ++i) {
         if ((ctick - btnsts[i].tick) > (BUTTON_DEAD_TM/portTICK_PERIOD_MS)) {
             /* the button's dead time is over */
@@ -43,7 +44,7 @@ void EXTI9_5_IRQHandler(void)
                 btnsts[i].tick = ctick;
 
                 if (btnEventQueue) {
-                    if (xQueueSendFromISR(btnEventQueue, &i, 0) == pdTRUE) {
+                    if (xQueueSendFromISR(btnEventQueue, &i, &xHigherPriorityTaskWoken) == pdTRUE) {
                         // ok; will alloc new buffer
                     } else {
                         // fail; ignore, keep buffer
@@ -52,6 +53,10 @@ void EXTI9_5_IRQHandler(void)
             }
         }
     }
+
+    /* clear IRQ penging bits */
+    // EXTI_ClearITPendingBit(EXTI_Line5 | EXTI_Line6 | EXTI_Line7 | EXTI_Line8 | EXTI_Line9);
+    EXTI_ClearITPendingBit(EXTI->PR);
 
     /* signal end-of-irq and possible reschedule point */
     portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
@@ -69,6 +74,12 @@ void ButtonsTask(void *pvParameters)
         if (xQueueReceive(btnEventQueue, &btn, portMAX_DELAY) == pdFALSE)
             continue;
 
+        LEDs_Set(LED2, 
+            (btnsts[BTN0].st) ? LED_INTENS_100 : LED_INTENS_0, 
+            (btnsts[BTN1].st) ? LED_INTENS_100 : LED_INTENS_0, 
+            (btnsts[BTN2].st) ? LED_INTENS_100 : LED_INTENS_0);
+
+        #if 0
         char *buf = pvPortMalloc(sizeof(char) * 32);
 
         strncpy(buf, "BTN", 32);
@@ -77,5 +88,6 @@ void ButtonsTask(void *pvParameters)
         buf[5] = 0;
 
         xQueueSend(toDisplayStrQueue, &buf, portMAX_DELAY);
+        #endif
     }
 }

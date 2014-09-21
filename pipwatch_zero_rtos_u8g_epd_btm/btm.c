@@ -229,31 +229,38 @@ void btmInitModem()
     // after-reset condition: give the BT module some time to init itself.
     vTaskDelay( ( TickType_t ) 1000 / portTICK_PERIOD_MS );
 
-    do {
-        // Before the escape sequence there must be silence for guard time
-        vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
-        
-        lSerialPutString( comBTM, atEscapeChar, strlen(atEscapeChar) );
-        vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
-        lSerialPutString( comBTM, atEscapeChar, strlen(atEscapeChar) );
-        vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
-        lSerialPutString( comBTM, atEscapeChar, strlen(atEscapeChar) );
-        
-        // After the escape sequence there must be silence for guard time
-        vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
+    /* Reset */
+    const char *atReset = "ATZ\r";
+    lSerialPutString( comBTM, atReset, strlen(atReset) );
+    if (btmExpectOK()) {
+        // failed; Try getting into command mode by sending the escape sequence:
+        do {
+            // Before the escape sequence there must be silence for guard time
+            vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
+            
+            lSerialPutString( comBTM, atEscapeChar, strlen(atEscapeChar) );
+            vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
+            lSerialPutString( comBTM, atEscapeChar, strlen(atEscapeChar) );
+            vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
+            lSerialPutString( comBTM, atEscapeChar, strlen(atEscapeChar) );
+            
+            // After the escape sequence there must be silence for guard time
+            vTaskDelay( ( TickType_t ) 120 / portTICK_PERIOD_MS );
 
-        // Send end of line
-        lSerialPutString( comBTM, atEOL, strlen(atEOL) );
-        // wait a little bit
-        vTaskDelay( ( TickType_t ) 100 / portTICK_PERIOD_MS );
-        // empty input buffer
-        usartDrainInput(comBTM);            /* this drains possible 'ERROR 05' status */
-        
-        // Send plain AT
-        lSerialPutString( comBTM, atTest, strlen(atTest) );
-        
-        // expect "OK\r\n"
-    } while (btmExpectOK());
+            // Send end of line
+            lSerialPutString( comBTM, atEOL, strlen(atEOL) );
+            // wait a little bit
+            vTaskDelay( ( TickType_t ) 100 / portTICK_PERIOD_MS );
+            // empty input buffer
+            usartDrainInput(comBTM);            /* this drains possible 'ERROR 05' status */
+            
+            // Send plain AT
+            lSerialPutString( comBTM, atTest, strlen(atTest) );
+            
+            // expect "OK\r\n"
+        } while (btmExpectOK());
+    }
+
 
     setBtmState(BTMST_Configured);
 
@@ -263,6 +270,15 @@ void btmInitModem()
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init( GPIOA, &GPIO_InitStruct );
+#endif
+#if 0
+    /* Set mode */
+    const char *atModeF1 = "AT&F1\r";
+    lSerialPutString( comBTM, atModeF1, strlen(atModeF1) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
 #endif
 
     /* Set Friendly name */
@@ -274,26 +290,18 @@ void btmInitModem()
         assert_failed(__FILE__, __LINE__);
     }
 
-    // do { } while (1);
-
-    /* Make modem Discoverable and connectable */
-    const char *atEnaRadio = "AT+BTP\r";
-    lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
-    if (btmExpectOK()) {
-        // failed
-        assert_failed(__FILE__, __LINE__);
-    }
-
     /* Open and make unit detectable */
+#if 0
     const char *atEnaRadio2 = "AT+BTO\r";
     lSerialPutString( comBTM, atEnaRadio2, strlen(atEnaRadio2) );
     if (btmExpectOK()) {
         // failed
         assert_failed(__FILE__, __LINE__);
     }
+#endif
 
     /* Set passkey */
-    const char *atSetPin = "AT+BTK=\"1234\"\r";
+    const char *atSetPin = "AT+BTK=\"1984\"\r";
     lSerialPutString( comBTM, atSetPin, strlen(atSetPin) );
     if (btmExpectOK()) {
         // failed
@@ -308,6 +316,24 @@ void btmInitModem()
         assert_failed(__FILE__, __LINE__);
     }
 #endif
+
+    /* Make modem Discoverable and connectable */
+#if 0
+    const char *atEnaRadio = "AT+BTP\r";
+    lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+#endif
+
+    /* Make modem Connectable */
+    const char *atEnaRadio = "AT+BTG\r";
+    lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
 
 #if 1
     /* Disable local echo */
