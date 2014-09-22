@@ -4,6 +4,7 @@
 #include "battery.h"
 #include "utils.h"
 #include "leds.h"
+#include "motor.h"
 
 #include <string.h>
 
@@ -28,22 +29,6 @@ void usartDrainInput(long lPort)
         ;
 }
 
-/*
- * Print string buffer to the display.
- */
-void printstr(char *buf)
-{
-    int cnt = strlen(buf);
-    char *zbuf = pvPortMalloc(sizeof(char) * (cnt+1));
-    strncpy(zbuf, buf, cnt+1);
-    for (int i = 0; i < cnt; ++i) {
-        if (zbuf[i] < 32 && zbuf[i] != 0) {
-            zbuf[i] = ' ';
-        }
-    }
-    zbuf[cnt] = 0;
-    xQueueSend(toDisplayStrQueue, &zbuf, 0);
-}
 
 /* Receive all characters until the buffer is full or there are none more
  * within the timeout */
@@ -129,7 +114,7 @@ int btmExpectOK()
     char xbuf[buflen];
     int len;
 
-    len = usartGetString(comBTM, xbuf, buflen, ( TickType_t ) 50 / portTICK_PERIOD_MS);
+    len = usartGetString(comBTM, xbuf, buflen, ( TickType_t ) 200 / portTICK_PERIOD_MS);
 
     char *buf = xbuf;
 
@@ -290,8 +275,8 @@ void btmInitModem()
         assert_failed(__FILE__, __LINE__);
     }
 
-    /* Open and make unit detectable */
 #if 0
+    /* Open and make unit detectable */
     const char *atEnaRadio2 = "AT+BTO\r";
     lSerialPutString( comBTM, atEnaRadio2, strlen(atEnaRadio2) );
     if (btmExpectOK()) {
@@ -317,23 +302,33 @@ void btmInitModem()
     }
 #endif
 
-    /* Make modem Discoverable and connectable */
 #if 0
+    /* Make modem Discoverable and connectable */
     const char *atEnaRadio = "AT+BTP\r";
     lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
     if (btmExpectOK()) {
         // failed
         assert_failed(__FILE__, __LINE__);
     }
-#endif
 
-    /* Make modem Connectable */
+    /* auto-save pairing info */
+    const char *atSavePairing = "ATS538=1\r";
+    lSerialPutString( comBTM, atSavePairing, strlen(atSavePairing) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+    
+#else
+    /* Make modem Connectable (Enable page scans) */
     const char *atEnaRadio = "AT+BTG\r";
+    // const char *atEnaRadio = "AT+BTG10BF48CD0778\r";         /* no effect on power consumption */
     lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
     if (btmExpectOK()) {
         // failed
         assert_failed(__FILE__, __LINE__);
     }
+#endif
 
 #if 1
     /* Disable local echo */
@@ -386,6 +381,7 @@ void BluetoothModemTask( void *pvParameters )
             lSerialPutString( comBTM, atAcceptRing, strlen(atAcceptRing) );
         
             setBtmState(BTMST_Connected);
+            Motor_Pulse(MOTOR_DUR_LONG);
         }
 
         if (strncmp(buf, "NO CARRIER", 10) == 0) {
@@ -410,6 +406,7 @@ void BluetoothModemTask( void *pvParameters )
         if (xQueueSend(toDisplayStrQueue, &buf, 0) == pdTRUE) {
             // ok; will alloc new buffer
             buf = NULL;
+            Motor_Pulse(MOTOR_DUR_MEDIUM);
         } else {
             // fail; ignore, keep buffer
         }

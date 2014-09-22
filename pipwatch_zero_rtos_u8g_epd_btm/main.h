@@ -10,5 +10,7 @@ extern QueueHandle_t toDisplayStrQueue;
 
 void assert_failed( char *pucFile, unsigned long ulLine );
 
+void printstr(char *buf);
+
 
 #endif

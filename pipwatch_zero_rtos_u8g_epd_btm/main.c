@@ -23,6 +23,7 @@
 #include "battery.h"
 #include "leds.h"
 #include "buttons.h"
+#include "motor.h"
 #include "utils.h"
 
 
@@ -107,6 +108,9 @@ int main( void )
     xTaskCreate( LEDsTask, "LEDs", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     xTaskCreate( ButtonsTask, "Buttons", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+
+    xTaskCreate( MotorTask, "Motor", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+
 
 	/* Create the 'check' task, which is also defined within this file. */
 	// xTaskCreate( prvCheckTask, "Check", configMINIMAL_STACK_SIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
@@ -410,15 +414,13 @@ static void prvSetupHardware( void )
 
     /* ------------------------------------------------------------------------ */
     /* Motors */
-#if 1
     /* Configure GPIO pin : PB13 Output */
-    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_13;
+    GPIO_InitStruct.GPIO_Pin = MOTOR_Pin;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_Init(MOTOR_Port, &GPIO_InitStruct);
     /* set Motor_1 off */
-    GPIO_ResetBits(GPIOB, GPIO_Pin_13);
-#endif
+    GPIO_ResetBits(MOTOR_Port, MOTOR_Pin);
 
 
     /* ------------------------------------------------------------------------ */
@@ -456,7 +458,36 @@ void assert_failed( char *pucFile, unsigned long ulLine )
 	( void ) pucFile;
 	( void ) ulLine;
 
+    char buf[64];
+
+    strcpy(buf, "ASS-FAIL: ");
+    strcat(buf, pucFile);
+    strcat(buf, ":");
+    itostr(buf+strlen(buf), 8, ulLine);
+    strcat(buf, ";");
+
+    printstr(buf);
+
 	for( ;; );
+}
+
+/*-----------------------------------------------------------*/
+
+/*
+ * Print string buffer to the display.
+ */
+void printstr(char *buf)
+{
+    int cnt = strlen(buf);
+    char *zbuf = pvPortMalloc(sizeof(char) * (cnt+1));
+    strncpy(zbuf, buf, cnt+1);
+    for (int i = 0; i < cnt; ++i) {
+        if (zbuf[i] < 32 && zbuf[i] != 0) {
+            zbuf[i] = ' ';
+        }
+    }
+    zbuf[cnt] = 0;
+    xQueueSend(toDisplayStrQueue, &zbuf, 0);
 }
 
 /*-----------------------------------------------------------*/
@@ -549,7 +580,9 @@ void EPDDrawTask(void *pvParameters)
         /* refresh screen after some delay */
         // vTaskDelay(( ( TickType_t ) 2000 / portTICK_PERIOD_MS ));
 
-        if (xQueueReceive(toDisplayStrQueue, &buf, portMAX_DELAY) == pdTRUE) {
+        TickType_t maxwait = portMAX_DELAY;
+
+        while (xQueueReceive(toDisplayStrQueue, &buf, maxwait) == pdTRUE) {
             if (buf) {
                 for (int i = 0; i < 3; ++i) {
                     strncpy(hello_text[i], hello_text[i+1], 32);
@@ -559,6 +592,8 @@ void EPDDrawTask(void *pvParameters)
                 vPortFree(buf);
                 buf = NULL;
             }
+            /* just in case - try to get more from the queue, otherwise go to redraw */
+            maxwait = 1;
         }
 
         /* update position */

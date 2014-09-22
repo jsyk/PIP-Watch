@@ -6,6 +6,7 @@
 #include "task.h"
 #include "queue.h"
 #include "leds.h"
+#include "motor.h"
 #include <string.h>
 
 
@@ -30,11 +31,6 @@ void EXTI9_5_IRQHandler(void)
     btn[1] = (GPIO_ReadInputDataBit(BTN1_Port, BTN1_Pin) == Bit_SET) ? 0 : 1;
     btn[2] = (GPIO_ReadInputDataBit(BTN2_Port, BTN2_Pin) == Bit_SET) ? 0 : 1;
 
-    // LEDs_SetFromISR(LED1,
-    //         (btn[0]) ? LED_INTENS_100 : LED_INTENS_0, 
-    //         (btn[1]) ? LED_INTENS_100 : LED_INTENS_0, 
-    //         (btn[2]) ? LED_INTENS_100 : LED_INTENS_0);
-        
     for (int i = 0; i < 3; ++i) {
         if ((ctick - btnsts[i].tick) > (BUTTON_DEAD_TM/portTICK_PERIOD_MS)) {
             /* the button's dead time is over */
@@ -78,6 +74,8 @@ void ButtonsTask(void *pvParameters)
             (btnsts[BTN0].st) ? LED_INTENS_100 : LED_INTENS_0, 
             (btnsts[BTN1].st) ? LED_INTENS_100 : LED_INTENS_0, 
             (btnsts[BTN2].st) ? LED_INTENS_100 : LED_INTENS_0);
+
+        Motor_Pulse(MOTOR_DUR_SHORT);
 
         #if 0
         char *buf = pvPortMalloc(sizeof(char) * 32);
