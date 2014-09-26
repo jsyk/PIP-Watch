@@ -293,14 +293,29 @@ void btmInitModem()
         assert_failed(__FILE__, __LINE__);
     }
 
-#if 0
-    const char *atToDataMode = "AT*addm\r";
-    lSerialPutString( comBTM, atToDataMode, strlen(atToDataMode) );
+    /* Set mode F1: Minimal power consumption, 9600Bd; mode F1= 0:4,4,48,80(50ms)
+        S508 = 2500 = page scan interval [ms]
+        S509 = 11 = page scan window [ms]
+    */
+    const char *atSetMinPower = "AT&F1\r";          
+    // const char *atSetMinPower = "AT&F0\r";          // Medium power consumption, 9600Bd
+    lSerialPutString( comBTM, atSetMinPower, strlen(atSetMinPower) );
     if (btmExpectOK()) {
         // failed
         assert_failed(__FILE__, __LINE__);
     }
-#endif
+
+    /* Set shorter Page scan interval: 1200ms, lower latency when opening the connection, higher
+     * probability of success.  */
+    // const char *atSniffStatus = "ATI13\r";
+    // const char *atSniffMaxInterval = "ATS564=60\r";
+    const char *atPgScanInterv = "ATS508=1200\r";
+    lSerialPutString( comBTM, atPgScanInterv, strlen(atPgScanInterv) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+
 
 #if 0
     /* Make modem Discoverable and connectable */
@@ -324,6 +339,18 @@ void btmInitModem()
     const char *atEnaRadio = "AT+BTG\r";
     // const char *atEnaRadio = "AT+BTG10BF48CD0778\r";         /* no effect on power consumption */
     lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
+    if (btmExpectOK()) {
+        // failed
+        assert_failed(__FILE__, __LINE__);
+    }
+#endif
+
+#if 0
+    /* Query Sniff state */
+    // const char *atSniffStatus = "ATI13\r";           // mode F1= 0:4,4,48,80
+    const char *atSniffStatus = "ATS509?\r";
+    lSerialPutString( comBTM, atSniffStatus, strlen(atSniffStatus) );
+    /* btmExpectOK() WILL fail here! */
     if (btmExpectOK()) {
         // failed
         assert_failed(__FILE__, __LINE__);
