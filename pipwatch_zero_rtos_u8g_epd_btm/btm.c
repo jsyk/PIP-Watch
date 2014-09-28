@@ -293,6 +293,7 @@ void btmInitModem()
         assert_failed(__FILE__, __LINE__);
     }
 
+#if 1
     /* Set mode F1: Minimal power consumption, 9600Bd; mode F1= 0:4,4,48,80(50ms)
         S508 = 2500 = page scan interval [ms]
         S509 = 11 = page scan window [ms]
@@ -305,8 +306,9 @@ void btmInitModem()
         assert_failed(__FILE__, __LINE__);
     }
 
+#if 1
     /* Set shorter Page scan interval: 1200ms, lower latency when opening the connection, higher
-     * probability of success.  */
+     * probability of success, higher avg power.  */
     // const char *atSniffStatus = "ATI13\r";
     // const char *atSniffMaxInterval = "ATS564=60\r";
     const char *atPgScanInterv = "ATS508=1200\r";
@@ -315,7 +317,8 @@ void btmInitModem()
         // failed
         assert_failed(__FILE__, __LINE__);
     }
-
+#endif
+#endif
 
 #if 0
     /* Make modem Discoverable and connectable */
@@ -335,7 +338,7 @@ void btmInitModem()
     }
     
 #else
-    /* Make modem Connectable (Enable page scans) */
+    /* Make modem Connectable (Enable page scans only) */
     const char *atEnaRadio = "AT+BTG\r";
     // const char *atEnaRadio = "AT+BTG10BF48CD0778\r";         /* no effect on power consumption */
     lSerialPutString( comBTM, atEnaRadio, strlen(atEnaRadio) );
