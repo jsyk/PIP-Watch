@@ -412,11 +412,27 @@ void BluetoothModemTask( void *pvParameters )
         
             setBtmState(BTMST_Connected);
             Motor_Pulse(MOTOR_DUR_LONG);
+            
+            /* clear buffer */
+            buf[0] = '\0';
+            continue;
+        }
+
+        if (strncmp(buf, "CONNECT ", 8) == 0) {
+            /* Connected to a remote. */
+            /* no need to do anything else now */
+            
+            /* clear buffer */
+            buf[0] = '\0';
+            continue;
         }
 
         if (strncmp(buf, "NO CARRIER", 10) == 0) {
             /* Disconnect */
             setBtmState(BTMST_Listening);
+            /* clear buffer */
+            buf[0] = '\0';
+            continue;
         }
 
         for (int i = 0; i < ((int)strlen(buf))-4; ++i) {
