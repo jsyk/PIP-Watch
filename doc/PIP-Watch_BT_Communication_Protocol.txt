@@ -1,0 +1,97 @@
+PIP-Watch BT Communication Protocol
+======================================
+
+
+BTM430 Unsolicitated Messages
+-------------------------------
+
+The following messages may be sent by BTM430 at any time:
+
+<cr,lf>AUDIO ON<cr,lf>
+<cr,lf>AUDIO OFF<cr,lf>
+<cr,lf>AUDIO FAIL<cr,lf>
+
+<cr,lf>RING <btaddr><cr,lf>
+<cr,lf>PIN? <btaddr><cr,lf>
+<cr,lf>PAIR <n> <btaddr><cr,lf>
+<cr,lf>PAIR 0 <btaddr> <MM><cr,lf>
+<cr,lf>RX<string><cr,lf>
+<cr,lf>CONNECT <btaddr><cr,lf>
+<cr,lf>NO CARRIER<cr,lf>
+
+
+Layers
+-----------
+
+Physical layer
+    BTM431 BT modem
+
+Link layer
+    Transport of characters (bytes) via BT SPP link. - implemented in the modem.
+
+Network layer
+    Searching for nearby devices, enumeration, pairing, accepting connections.
+
+Transport layer
+    Transport of complete messages.
+
+Session layer
+    Synchronized exchange of messages between devices.
+    Retransmission of lost messages.
+
+Presentation layer
+
+Application layer
+    Transport of SMS etc.
+    JSON
+
+
+
+NETWORK LAYER BNF
+====================
+
+<btm_rx_stream> :=
+    <new_msg> | <msg_ack> | <msg_nack> | <btm_status>
+
+<new_msg> :=
+    '*' <seqnum> <code_text> <lf>
+
+<seqnum> :=
+    <digit> <digit>
+
+<msg_ack> :=
+    '+' <seqnum> <lf>
+
+<msg_nack> :=
+    '-' <seqnum> <lf>
+
+<btm_status> :=
+    <cr><lf><status_text><cr><lf>
+
+<code_text> := non-visible chars below space, backslash char, special chars, are coded
+    using escape \<2-hex-num>
+
+
+New Message:
+-------------
+*<seqnum><text><lf>
+
+<seqnum> = 00
+    Two decimal numbers. Random number for the first message after connection,
+    then incrementing, with a wrap.
+
+<text>
+    Max message length 2048 characters.
+    Non-visible characters below space and the backslash are coded using \<2-hex-num>
+
+
+Msg acknowledgement
+-----------------------
++<seqnum><lf>
+
+
+Msg nack
+-----------
+-<seqnum><lf>
+
+
