@@ -24,9 +24,12 @@ static int btm_rx_seqnum(long lPort, int *seqnum);
 static int btm_rx_new_msg(long lPort);
 static int btm_rx_codetext(long lPort, char *buf, int buflen);
 static int btm_rx_escapecode(long lPort, char *cch);
-static int btm_rx_ack_msg(long lPort);
+static int btm_rx_ack_msg(long lPort, int *seqnum);
 static int btm_rx_status(long lPort);
+static int btm_rx_statustext(long lPort, char *buf, int buflen);
 
+static int do_decode_status(const char *buf);
+static int do_rx_new_msg(const char *buf);
 
 
 int btm_state = BTMST_NonConfigured;
@@ -480,9 +483,14 @@ void BluetoothModemTask( void *pvParameters )
 }
 
 
+/**
+    <btm_rx_stream> :=
+        . <new_msg> | <msg_ack> | <msg_nack> | <btm_status>
+ */
 static int btm_rx_stream(long lPort)
 {
     char ch = 0;
+    int seqnum = 0;
 
     // xSerialPeekChar(lPort, &ch, portMAX_DELAY);
     xSerialGetChar(lPort, &ch, portMAX_DELAY);
@@ -492,11 +500,11 @@ static int btm_rx_stream(long lPort)
             break;
 
         case '+':   /* ack of a msg */
-            return btm_rx_ack_msg(lPort);
+            return btm_rx_ack_msg(lPort, &seqnum);
             break;
 
         case '-':   /* nack of a msg */
-            return btm_rx_ack_msg(lPort);
+            return btm_rx_ack_msg(lPort, &seqnum);
             break;
 
         case '\r':  /* modem message */
@@ -509,6 +517,10 @@ static int btm_rx_stream(long lPort)
     }
 }
 
+/**
+    <seqnum> :=
+        . <digit> <digit>
+ */
 static int btm_rx_seqnum(long lPort, int *seqnum)
 {
     char ch = 0;
@@ -525,7 +537,7 @@ static int btm_rx_seqnum(long lPort, int *seqnum)
             continue;
         }
 
-        if (!isdigit(ch)) {
+        if (!isdigit((unsigned char)ch)) {
             /* error: not a digit */
             return 1;
         }
@@ -538,23 +550,41 @@ static int btm_rx_seqnum(long lPort, int *seqnum)
 }
 
 
+/**
+    <new_msg> :=
+        '*' . <seqnum> <code_text> <lf>
+ */
 static int btm_rx_new_msg(long lPort)
 {
     int seqnum;
-    char *buf = NULL;
-    int buflen = 0;
 
-    if (btm_rx_seqnum(lPort, &seqnum) != 0)
+    if (btm_rx_seqnum(lPort, &seqnum) != 0) {
         return 1;
+    }
 
-    if (btm_rx_codetext(lPort, buf, buflen) != 0)
+    const int buflen = 2048;
+    char *buf = pvPortMalloc(sizeof(char)*buflen);
+
+    if (!buf) {
+        /* no memory */
         return 1;
+    }
+
+    if (btm_rx_codetext(lPort, buf, buflen) != 0) {
+        return 1;
+    }
 
     /* give the message to upper layer */
+    do_rx_new_msg(buf);
+    vPortFree(buf);
 
     return 0;
 }
 
+/**
+    <code_text> := non-visible chars below space, backslash char, are coded
+        using escape \<2-hex-num>
+ */
 static int btm_rx_codetext(long lPort, char *buf, int buflen)
 {
     char ch = 0;
@@ -595,6 +625,10 @@ static int btm_rx_codetext(long lPort, char *buf, int buflen)
     } while (1);
 }
 
+/**
+    escapecode := 
+        '\' . <hex-char> <hex-char>
+ */
 static int btm_rx_escapecode(long lPort, char *cch)
 {
     char ch = 0;
@@ -610,12 +644,12 @@ static int btm_rx_escapecode(long lPort, char *cch)
             continue;
         }
 
-        if (!isxdigit(ch)) {
+        if (!isxdigit((unsigned char)ch)) {
             return 1;
         }
 
         int x = 0;
-        if (isdigit(ch)) {
+        if (isdigit((unsigned char)ch)) {
             x = ch - '0';
         } else if (ch >= 'a' && ch <= 'f') {
             x = ch - 'a' + 10;
@@ -630,13 +664,16 @@ static int btm_rx_escapecode(long lPort, char *cch)
     return 0;
 }
 
-static int btm_rx_ack_msg(long lPort)
+/**
+    btm_rx_ack_msg :=
+        '+' . <seqnum> <lf> |
+        '-' . <seqnum> <lf>
+ */
+static int btm_rx_ack_msg(long lPort, int *seqnum)
 {
     char ch = 0;
 
-    int seqnum;
-
-    if (btm_rx_seqnum(lPort, &seqnum) != 0)
+    if (btm_rx_seqnum(lPort, seqnum) != 0)
         return 1;
 
     do {
@@ -659,8 +696,82 @@ static int btm_rx_ack_msg(long lPort)
 
 }
 
-static int btm_rx_status(long lPort)
+/**
+    btm_rx_statustext :=
+        . <string text, no escaping> <cr> <lf>
+ */
+static int btm_rx_statustext(long lPort, char *buf, int buflen)
 {
+    char ch;
+    int cnt = 0;
 
+    do {
+        if (cnt >= buflen-1) {
+            return 1;
+        }
+
+        xSerialGetChar(lPort, &ch, portMAX_DELAY);
+
+        switch (ch) {
+            case '\r':  /* modem status msg */
+                /* ignore */
+                break;
+
+            case '\n':  /* end of codetext */
+                buf[cnt++] = ch;
+                buf[cnt++] = 0;
+                return 0;
+                break;
+
+            default:
+                buf[cnt++] = ch;
+                break;
+        }
+    } while (1);
 }
 
+/**
+    <btm_status> :=
+        <cr> . <lf> <status_text> <cr> <lf>
+ */
+static int btm_rx_status(long lPort)
+{
+    char ch;
+
+    xSerialGetChar(lPort, &ch, portMAX_DELAY);
+    if (ch != '\n') {
+        /* expected \n */
+        return 1;
+    }
+
+    const int buflen = 256;
+    char *buf = pvPortMalloc(sizeof(char) * buflen);
+
+    if (!buf) {
+        /* malloc failed */
+        return 1;
+    }
+    
+    if (btm_rx_statustext(lPort, buf, buflen)) {
+        /* error reading status message from modem */
+        return 1;
+    }
+
+    /* act on the status message */
+    int res = do_decode_status(buf);
+    vPortFree(buf);
+    return res;
+}
+
+/* decode and act on status message received from modem */
+static int do_decode_status(const char *buf)
+{
+
+
+    return 0;
+}
+
+static int do_rx_new_msg(const char *buf)
+{
+    return 0;
+}
