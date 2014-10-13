@@ -11,10 +11,6 @@
 /* Library includes. */
 #include "stm32f10x_it.h"
 
-/* Demo app includes. */
-#include "flash.h"
-#include "partest.h"
-
 /* Driver includes. */
 #include "STM32_USART.h"
 #include "epd.h"
@@ -24,6 +20,7 @@
 #include "leds.h"
 #include "buttons.h"
 #include "motor.h"
+#include "gui.h"
 #include "utils.h"
 
 
@@ -54,26 +51,11 @@ check task has detected an error or not. */
  */
 static void prvSetupHardware( void );
 
-/* The 'check' task as described at the top of this file. */
-// static void prvCheckTask( void *pvParameters );
-
-
-void EPDDrawTask(void *pvParameters);
 
 /*-----------------------------------------------------------*/
-/* Global variables */
-
-u8g_t u8g;
-
-char hello_text[4][32] = {"Pip-Watch", "  Zero  v0.1", "---------------", ""};
-
-QueueHandle_t toDisplayStrQueue = NULL;
 
 
 void assert_failed( char *pucFile, unsigned long ulLine );
-
-/*-----------------------------------------------------------*/
-
 
 
 /*-----------------------------------------------------------*/
@@ -87,7 +69,8 @@ int main( void )
 	/* Set up the clocks and memory interface. */
 	prvSetupHardware();
 
-    toDisplayStrQueue = xQueueCreate(16, sizeof(char *));
+    // toDisplayStrQueue = xQueueCreate(16, sizeof(char *));
+    toGuiQueue = xQueueCreate(8, sizeof(struct guievent));
 
     current_rtime.sec = 0;
     current_rtime.min = 39;
@@ -100,8 +83,7 @@ int main( void )
 	/* Create the 'echo' task, which is also defined within this file. */
     xTaskCreate( BluetoothModemTask, "BTM", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
-    // epd Task
-	xTaskCreate( EPDDrawTask, "EpdDraw", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
+	xTaskCreate( GuiDrawTask, "GuiDraw", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
     xTaskCreate( BatteryTask, "Battery", 2*configMINIMAL_STACK_SIZE, NULL, mainECHO_TASK_PRIORITY, NULL );
 
@@ -472,133 +454,4 @@ void assert_failed( char *pucFile, unsigned long ulLine )
 }
 
 /*-----------------------------------------------------------*/
-
-/*
- * Print string buffer to the display.
- */
-void printstr(char *buf)
-{
-    int cnt = strlen(buf);
-    char *zbuf = pvPortMalloc(sizeof(char) * (cnt+1));
-    strncpy(zbuf, buf, cnt+1);
-    for (int i = 0; i < cnt; ++i) {
-        if (zbuf[i] < 32 && zbuf[i] != 0) {
-            zbuf[i] = ' ';
-        }
-    }
-    zbuf[cnt] = 0;
-    xQueueSend(toDisplayStrQueue, &zbuf, 0);
-}
-
-/*-----------------------------------------------------------*/
-
-#define BATTERY_WIDTH       20
-#define BATTERY_HEIGHT      8
-
-void draw_battery(int percent, int px, int py)
-{
-    if (percent < 0) { percent = 0; }
-    if (percent > 100) { percent = 100; }
-
-    u8g_SetDefaultMidColor(&u8g);
-    u8g_DrawBox(&u8g, px, py, percent / (100/BATTERY_WIDTH), BATTERY_HEIGHT);
-
-    u8g_SetDefaultForegroundColor(&u8g);
-    u8g_DrawFrame(&u8g, px, py, BATTERY_WIDTH, BATTERY_HEIGHT);
-    u8g_DrawFrame(&u8g, px+BATTERY_WIDTH, py+2, 2, 4);
-
-    u8g_SetFont(&u8g, u8g_font_helvR08);
-    char s[16];
-#if 0
-    /* print percents */
-    int k = itostr(s, 16, vbat_percent);
-    s[k] = '%';
-    s[k+1] = '\0';
-#else
-    /* print voltage */
-    int vbat100 = vbat_measured / 10;
-    if ((vbat_measured % 10) >= 5) { vbat100 += 1; }
-    int k = itostr(s, 16, vbat100);
-    memmove(s+2, s+1, k-1);
-    s[1] = '.';
-    s[k+1] = 'V';
-    s[k+2] = batt_state;
-    s[k+3] = '\0';
-#endif
-    u8g_DrawStr(&u8g,  px+BATTERY_WIDTH+4, py+BATTERY_HEIGHT, s);
-}
-
-void draw(int pos)
-{
-#define TXT_OFFS_Y      10
-#define TXT_LINESPC_Y   15
-    u8g_SetDefaultForegroundColor(&u8g);
-    // u8g_SetFont(&u8g, u8g_font_helvR12);
-    u8g_SetFont(&u8g, u8g_font_helvR08);
-
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*1, hello_text[0]);
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*2, hello_text[1]);
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*3, hello_text[2]);
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*4, hello_text[3]);
-
-    /* clock face */
-#define CFACE_CENTER_X      136
-#define CFACE_CENTER_Y      36
-#define CFACE_RADIUS        34
-    draw_clock_face(current_rtime.hour, current_rtime.min,
-        CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
-
-    draw_battery(vbat_percent, 0, 0);
-
-#if 1
-    /* print temperature */
-    char s[8];
-    int k = itostr(s, 8, temp_celsius);
-    s[k] = 'o'; //0xB0;
-    s[k+1] = 'C';
-    s[k+2] = '\0';
-    u8g_SetFont(&u8g, u8g_font_helvR08);
-    u8g_DrawStr(&u8g,  70, 8, s);
-#endif
-}
-
-void EPDDrawTask(void *pvParameters)
-{
-    u8g_InitComFn(&u8g, &u8g_dev_ssd1606_172x72_hw_spi, u8g_com_null_fn);
-    u8g_SetDefaultForegroundColor(&u8g);
-
-    int pos = 0;
-    char *buf = NULL;
-
-    for (;;) {
-        /* picture loop */
-        u8g_FirstPage(&u8g);
-        do {
-            draw(pos);
-        } while ( u8g_NextPage(&u8g) );
-
-        /* refresh screen after some delay */
-        // vTaskDelay(( ( TickType_t ) 2000 / portTICK_PERIOD_MS ));
-
-        TickType_t maxwait = portMAX_DELAY;
-
-        while (xQueueReceive(toDisplayStrQueue, &buf, maxwait) == pdTRUE) {
-            if (buf) {
-                for (int i = 0; i < 3; ++i) {
-                    strncpy(hello_text[i], hello_text[i+1], 32);
-                }
-                strncpy(hello_text[3], buf, 32);
-
-                vPortFree(buf);
-                buf = NULL;
-            }
-            /* just in case - try to get more from the queue, otherwise go to redraw */
-            maxwait = 1;
-        }
-
-        /* update position */
-        pos++;
-        pos &= 3;
-    }  
-}
 

@@ -13,6 +13,7 @@
 #define CHARGESTAT_Pin      GPIO_Pin_11
 
 
+/* for batt_state: */
 #define BATTERY_UNKNOWN         '?'
 #define BATTERY_DISCHARGING     '-'
 #define BATTERY_CHARGING        '+'
@@ -23,6 +24,7 @@ extern int vbat_measured;
 extern int vbat_percent;
 extern char batt_state;
 
+/* CPU temperature in celsius */
 extern int temp_celsius;
 
 void BatteryTask(void *pvParameters);

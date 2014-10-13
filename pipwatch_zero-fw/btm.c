@@ -5,7 +5,9 @@
 #include "utils.h"
 #include "leds.h"
 #include "motor.h"
+#include "gui.h"
 
+#include "jsmn.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -29,7 +31,7 @@ static int btm_rx_status(long lPort);
 static int btm_rx_statustext(long lPort, char *buf, int buflen);
 
 static int do_decode_status(const char *buf);
-static int do_rx_new_msg(const char *buf);
+static int do_rx_new_msg(char *buf);
 
 
 int btm_state = BTMST_NonConfigured;
@@ -467,7 +469,12 @@ void BluetoothModemTask( void *pvParameters )
             }
         }
 
-        if (xQueueSend(toDisplayStrQueue, &buf, 0) == pdTRUE) {
+        struct guievent gevnt;
+        gevnt.evnt = GUI_E_PRINTSTR;
+        gevnt.buf = buf;
+        gevnt.kpar = 0;
+
+        if (xQueueSend(toGuiQueue, &gevnt, 0) == pdTRUE) {
             // ok; will alloc new buffer
             buf = NULL;
             Motor_Pulse(MOTOR_DUR_MEDIUM);
@@ -707,6 +714,7 @@ static int btm_rx_statustext(long lPort, char *buf, int buflen)
 
     do {
         if (cnt >= buflen-1) {
+            buf[cnt] = 0;
             return 1;
         }
 
@@ -763,15 +771,68 @@ static int btm_rx_status(long lPort)
     return res;
 }
 
-/* decode and act on status message received from modem */
+/* Decode and act on status message received from the modem. 
+ * The status text is normally ended by <lf> and \0.
+
+RING <btaddr><lf>
+PIN? <btaddr><lf>
+PAIR <n> <btaddr><lf>
+PAIR 0 <btaddr> <MM><lf>
+RX<string><lf>
+CONNECT <btaddr><lf>
+NO CARRIER<lf>
+
+ */
 static int do_decode_status(const char *buf)
 {
+    if (strncmp(buf, "RING ", 5) == 0) {
+        /* Incomming connection -> send an ack to accept */
+        const char *atAcceptRing = "ATA\r";
+        lSerialPutString( comBTM, atAcceptRing, strlen(atAcceptRing) );
+    
+        setBtmState(BTMST_Connected);
+        Motor_Pulse(MOTOR_DUR_LONG);
+        
+        return 0;
+    }
 
+    if (strncmp(buf, "CONNECT ", 8) == 0) {
+        /* Connected to a remote. */
+        /* no need to do anything else now */
+        return 0;
+    }
 
-    return 0;
+    if (strncmp(buf, "NO CARRIER", 10) == 0) {
+        /* Disconnect */
+        setBtmState(BTMST_Listening);
+        return 0;
+    }
+
+    return 1;
 }
 
-static int do_rx_new_msg(const char *buf)
+static int do_rx_new_msg(char *buf)
 {
+    jsmn_parser parser;
+    jsmntok_t *tokens = NULL;
+    int maxtok = 64;
+
+    jsmn_init(&parser);
+
+    tokens = pvPortMalloc(sizeof(jsmntok_t) * maxtok);
+    if (tokens == NULL) {
+        /* out of memory */
+        return 1;
+    }
+
+    int tokcnt = jsmn_parse(&parser, buf, strlen(buf), tokens, maxtok);
+
+    if (tokcnt < 0) {
+        /* parse error */
+        vPortFree(tokens);
+        return 1;
+    }
+
+    vPortFree(tokens);
     return 0;
 }

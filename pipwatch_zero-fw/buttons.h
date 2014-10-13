@@ -12,10 +12,18 @@ struct button_state_t {
 };
 
 
+/* buttons identification */
 #define BTN0		0
 #define BTN1		1
 #define BTN2		2
 
+#define BTNx_M      0xFF
+
+/* button event */
+#define BTN_PRESSED     0x100
+#define BTN_RELEASED    0x200
+
+/* hardware ports and pins */
 #define BTN0_Port	GPIOB
 #define BTN1_Port	GPIOB
 #define BTN2_Port	GPIOB
@@ -27,6 +35,10 @@ struct button_state_t {
 
 /* dead time in milliseconds */
 #define BUTTON_DEAD_TM		20
+
+
+/* current button state */
+extern struct button_state_t btnsts[3];
 
 
 void EXTI9_5_IRQHandler(void);

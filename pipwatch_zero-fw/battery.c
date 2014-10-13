@@ -1,5 +1,5 @@
 #include "battery.h"
-#include "main.h"
+#include "gui.h"
 
 /* Scheduler includes. */
 #include "task.h"
@@ -109,8 +109,12 @@ void BatteryTask(void *pvParameters)
 
         if (batt_state != new_batt_state) {
             batt_state = new_batt_state;
-            char *buf = NULL;
-            xQueueSend(toDisplayStrQueue, &buf, 0);
+
+            struct guievent gevnt;
+            gevnt.evnt = GUI_E_BATT;
+            gevnt.buf = NULL;
+            gevnt.kpar = batt_state;
+            xQueueSend(toGuiQueue, &gevnt, 0);
         }
 
         /* wait 4 seconds */

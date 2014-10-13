@@ -7,6 +7,7 @@
 #include "queue.h"
 #include "leds.h"
 #include "motor.h"
+#include "gui.h"
 #include <string.h>
 
 
@@ -77,15 +78,17 @@ void ButtonsTask(void *pvParameters)
 
         Motor_Pulse(MOTOR_DUR_SHORT);
 
-        #if 0
-        char *buf = pvPortMalloc(sizeof(char) * 32);
+        struct guievent gevnt;
+        gevnt.evnt = GUI_E_BUTTON;
+        gevnt.buf = NULL;
+        gevnt.kpar = btn;
 
-        strncpy(buf, "BTN", 32);
-        buf[3] = '0' + btn;
-        buf[4] = (btnsts[btn].st) ? 'P' : 'R';
-        buf[5] = 0;
-
-        xQueueSend(toDisplayStrQueue, &buf, portMAX_DELAY);
-        #endif
+        if (btnsts[btn].st) {
+            gevnt.kpar |= BTN_PRESSED;
+        } else{
+            gevnt.kpar |= BTN_RELEASED;
+        }
+        
+        xQueueSend(toGuiQueue, &gevnt, portMAX_DELAY);
     }
 }

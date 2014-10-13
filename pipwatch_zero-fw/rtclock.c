@@ -1,5 +1,6 @@
 #include "rtclock.h"
 #include "main.h"
+#include "gui.h"
 
 /* Scheduler includes. */
 // #include "FreeRTOS.h"
@@ -41,6 +42,11 @@ int absrot60(int angle)
 void draw_clock_face(unsigned int hours, unsigned int minutes, 
     int center_x, int center_y, int radius, u8g_t *u8g)
 {
+    /* clear background to white */
+    u8g_SetDefaultBackgroundColor(u8g);
+    u8g_DrawBox(u8g, center_x-radius, center_y-radius, 2*radius, 2*radius);
+    u8g_SetDefaultForegroundColor(u8g);
+
     /* face */
     u8g_DrawCircle(u8g, center_x, center_y, radius, U8G_DRAW_ALL);
     u8g_DrawCircle(u8g, center_x, center_y, radius+1, U8G_DRAW_ALL);
@@ -90,8 +96,11 @@ void RTC_IRQHandler(void)
             }
         }
 
-        char *buf = NULL;
-        xQueueSendFromISR(toDisplayStrQueue, &buf, &xHigherPriorityTaskWoken);
+        struct guievent gevnt;
+        gevnt.evnt = GUI_E_CLOCK;
+        gevnt.buf = NULL;
+        gevnt.kpar = 0;
+        xQueueSendFromISR(toGuiQueue, &gevnt, &xHigherPriorityTaskWoken);
     }
 
     /* clear RTC irq pending bit of the 'seconds' irq */

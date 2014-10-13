@@ -39,14 +39,12 @@ PRJDIR		= prj
 
 U8GSRC:=$(wildcard $(U8G)/*.c)
 
-SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c \
-	buttons.c leds.c motor.c \
+SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c jsmn.c \
+	buttons.c leds.c motor.c gui.c \
 	flash.c \
 	epd_imgs.c \
 	$(U8GSRC) \
 	Drivers/STM32_USART.c \
-	Drivers/SPI_Flash_ST_Eval.c \
-	ParTest/ParTest_ST_Eval.c \
 	$(FREERTOS)/portable/GCC/ARM_CM3/port.c \
 	$(FREERTOS)/tasks.c \
 	$(FREERTOS)/list.c \
@@ -66,16 +64,8 @@ SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c \
  	$(STLIB)/src/system_stm32f10x.c \
  	$(STLIB)/src/misc.c
 
- 	#ST_Library/src/stm32f10x_lib.c
- 	# ST_Library/src/stm32f10x_systick.c \
- 	# ST_Library/src/stm32f10x_nvic.c \
-	# ../Common/Minimal/recmutex.c \
-	# ../Common/Minimal/semtest.c \
-	# ../Common/Minimal/BlockQ.c \
-	# ../Common/Minimal/GenQTest.c \
-	# ../Common/Minimal/integer.c \
-	# ../Common/Minimal/PollQ.c \
-	# ../Common/Minimal/QPeek.c \
+# Drivers/SPI_Flash_ST_Eval.c \
+# ParTest/ParTest_ST_Eval.c \
 
 ###############################################################################
 ASRC = STM32F10x_Startup.s
