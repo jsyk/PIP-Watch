@@ -70,7 +70,7 @@ int main( void )
 	prvSetupHardware();
 
     // toDisplayStrQueue = xQueueCreate(16, sizeof(char *));
-    toGuiQueue = xQueueCreate(8, sizeof(struct guievent));
+    toGuiQueue = xQueueCreate(16, sizeof(struct guievent));
 
     current_rtime.sec = 0;
     current_rtime.min = 39;

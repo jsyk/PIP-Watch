@@ -95,3 +95,11 @@ Msg nack
 -<seqnum><lf>
 
 
+
+Examples
+===============
+
+*01Ahoj<lf>
+
+*01{"time":"2204"}<lf>
+

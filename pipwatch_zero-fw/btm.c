@@ -405,10 +405,11 @@ void BluetoothModemTask( void *pvParameters )
     /* modem setup  */
     btmInitModem();
 
-    /* Try sending out a string all in one go, as a very basic test of the
-    lSerialPutString() function. */
-    // lSerialPutString( comBTM, pcLongishString, strlen( pcLongishString ) );
+    while (1) {
+        btm_rx_stream(comBTM);
+    }
 
+#if 0
     char *buf = NULL;
 
     for( ;; )
@@ -487,6 +488,7 @@ void BluetoothModemTask( void *pvParameters )
         // vTaskDelay( ( TickType_t ) 300 / portTICK_PERIOD_MS );
         // GPIO_ResetBits(GPIOB, 1 << 13);
     }
+#endif
 }
 
 
@@ -581,9 +583,8 @@ static int btm_rx_new_msg(long lPort)
         return 1;
     }
 
-    /* give the message to upper layer */
+    /* give the message to upper layer; the buffer is consumed */
     do_rx_new_msg(buf);
-    vPortFree(buf);
 
     return 0;
 }
@@ -811,8 +812,10 @@ static int do_decode_status(const char *buf)
     return 1;
 }
 
+/* NOTE: the buf is consumed here! */
 static int do_rx_new_msg(char *buf)
 {
+    struct guievent gevnt;
     jsmn_parser parser;
     jsmntok_t *tokens = NULL;
     int maxtok = 64;
@@ -833,6 +836,45 @@ static int do_rx_new_msg(char *buf)
         return 1;
     }
 
+    if (tokcnt > 0 && tokens[0].type == JSMN_OBJECT) {
+        if ((tokcnt > 1) && (tokens[1].type == JSMN_STRING) && (strncmp(buf+tokens[1].start, "time", 4) == 0) ) {
+            if ((tokcnt > 2) && (tokens[2].type == JSMN_STRING) ) {
+
+                int i = tokens[2].start - 1;
+                int hours = (buf[i+1]-'0')*10 + (buf[i+2]-'0');
+                int minutes = (buf[i+3]-'0')*10 + (buf[i+4]-'0');
+                hours %= 24;
+                minutes %= 60;
+                current_rtime.sec = 0;
+                current_rtime.hour = hours;
+                current_rtime.min = minutes;
+
+                gevnt.evnt = GUI_E_PRINTSTR;
+                gevnt.buf = pvPortMalloc(16);
+                strcpy(gevnt.buf, "time-ok");
+                gevnt.kpar = 0;
+                xQueueSend(toGuiQueue, &gevnt, 0);
+            }
+        }
+    }
+
     vPortFree(tokens);
+
+#if 1
+    gevnt.evnt = GUI_E_PRINTSTR;
+    gevnt.buf = buf;
+    gevnt.kpar = 0;
+
+    if (xQueueSend(toGuiQueue, &gevnt, 0) == pdTRUE) {
+        // ok; will alloc new buffer
+        buf = NULL;
+        Motor_Pulse(MOTOR_DUR_MEDIUM);
+    } else {
+        // fail; ignore, keep buffer
+        vPortFree(buf);
+    }
+#endif
+
+
     return 0;
 }
