@@ -10,7 +10,7 @@
 
 #define LEDS_ON_TIMEOUT             (10 * 1000)
 #define LEDS_STAY_OFF_TM            (10 * 1000)
-#define LEDS_REMEMBER_ON_TM         (500)
+#define LEDS_REMEMBER_ON_TM         (100)
 
 
 /* GLOBAL VARIABLE

@@ -42,6 +42,8 @@ extern QueueHandle_t toGuiQueue;
 
 void GuiDrawTask(void *pvParameters);
 
-void printstr(char *buf);
+void printstr(const char *buf);
+void printstrn(const char *buf, int cnt);
+
 
 #endif

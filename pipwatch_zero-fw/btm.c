@@ -38,9 +38,6 @@ int btm_state = BTMST_NonConfigured;
 
 
 
-
-
-
 /* Remove all characters already received in USART queue */
 void usartDrainInput(long lPort)
 {
@@ -812,6 +809,60 @@ static int do_decode_status(const char *buf)
     return 1;
 }
 
+
+/* parse primitive token "time" */
+static void prs_ptok_time(const char *buf, const jsmntok_t *tok, int tcount, rtclock_t *tm)
+{
+    int i = tok[0].start - 1;
+    int hours = 0;
+    if (i+2 <= tok[0].end) {
+        hours = (buf[i+1]-'0')*10 + (buf[i+2]-'0');
+    }
+    int minutes = 0;
+    if (i+4 <= tok[0].end) {
+        minutes = (buf[i+3]-'0')*10 + (buf[i+4]-'0');
+    }
+    int seconds = 0;
+    if (i+6 <= tok[0].end) {
+        seconds = (buf[i+5]-'0')*10 + (buf[i+6]-'0');
+    }
+
+    hours %= 24;
+    minutes %= 60;
+    seconds %= 60;
+
+    tm->hour = hours;
+    tm->min = minutes;
+    tm->sec = seconds;
+}
+
+
+/* Matches tokname and jsmntp agains the current tok. Also checks that the tok is not beyond toklast.
+ * Return 0 on false, 1 on match.
+ */
+static int match_tok(const char *buf, const jsmntok_t *tok, const jsmntok_t *tokend, const char *tokname, int jsmntp)
+{
+    if (tok >= tokend) {
+        /* at the end - fail */
+        return 0;
+    }
+    if (tokname != NULL) {
+        if (tok->end - tok->start != strlen(tokname))
+            /* name len not match */
+            return 0;
+        if (strncmp(buf+tok->start, tokname, strlen(tokname)) != 0)
+            /* name match fail */
+            return 0;
+    }
+    if (jsmntp >= 0) {
+        if (tok->type != jsmntp)
+            /* token type match fail */
+            return 0;
+    }
+    return 1;       /* match found */
+}
+
+
 /* NOTE: the buf is consumed here! */
 static int do_rx_new_msg(char *buf)
 {
@@ -819,12 +870,14 @@ static int do_rx_new_msg(char *buf)
     jsmn_parser parser;
     jsmntok_t *tokens = NULL;
     int maxtok = 64;
+    // int result = 0;
 
     jsmn_init(&parser);
 
     tokens = pvPortMalloc(sizeof(jsmntok_t) * maxtok);
     if (tokens == NULL) {
         /* out of memory */
+        printstr("do_rx_new_msg: tokens malloc");
         return 1;
     }
 
@@ -832,35 +885,55 @@ static int do_rx_new_msg(char *buf)
 
     if (tokcnt < 0) {
         /* parse error */
+        printstr("do_rx_new_msg: parse error");
         vPortFree(tokens);
         return 1;
     }
 
-    if (tokcnt > 0 && tokens[0].type == JSMN_OBJECT) {
-        if ((tokcnt > 1) && (tokens[1].type == JSMN_STRING) && (strncmp(buf+tokens[1].start, "time", 4) == 0) ) {
-            if ((tokcnt > 2) && (tokens[2].type == JSMN_STRING) ) {
+    jsmntok_t *tok = tokens;
+    const jsmntok_t *tokend = tokens+tokcnt;
 
-                int i = tokens[2].start - 1;
-                int hours = (buf[i+1]-'0')*10 + (buf[i+2]-'0');
-                int minutes = (buf[i+3]-'0')*10 + (buf[i+4]-'0');
-                hours %= 24;
-                minutes %= 60;
-                current_rtime.sec = 0;
-                current_rtime.hour = hours;
-                current_rtime.min = minutes;
+    if (match_tok(buf, tok, tokend, NULL, JSMN_OBJECT)) {
+        tok += 1;
+
+        while (tok < tokend) {
+            if (match_tok(buf, &tok[0], tokend, "time", JSMN_STRING)
+                    && match_tok(buf, &tok[1], tokend, NULL, JSMN_STRING)) {
+
+                prs_ptok_time(buf, &tok[1], tok[0].size, &current_rtime);
 
                 gevnt.evnt = GUI_E_PRINTSTR;
                 gevnt.buf = pvPortMalloc(16);
                 strcpy(gevnt.buf, "time-ok");
                 gevnt.kpar = 0;
                 xQueueSend(toGuiQueue, &gevnt, 0);
+
+                tok += 2;
+                continue;
             }
+
+            if (match_tok(buf, &tok[0], tokend, "msgtext", JSMN_STRING)
+                    && match_tok(buf, &tok[1], tokend, NULL, JSMN_STRING)) {
+                printstrn(buf+tok[1].start, tok[1].end - tok[1].start);
+                tok += 2;
+                continue;
+            }
+
+            break;
         }
+
     }
 
     vPortFree(tokens);
 
-#if 1
+    if (tok < tokend) {
+        /* not all tokens recognized; print the buf string... */
+        printstr(buf);
+    }
+
+    vPortFree(buf);
+
+#if 0
     gevnt.evnt = GUI_E_PRINTSTR;
     gevnt.buf = buf;
     gevnt.kpar = 0;

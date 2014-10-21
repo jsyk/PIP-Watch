@@ -1,0 +1,7 @@
+*01{"time":"2254"}
+*01{"msgtext":"Ahoj"}
+*01{"msgtextx":"a"}
+
+*01{"time":"2201","msgtext":"Ahoj"}
+*01{"msgtext":"Ahoj","time":"2201"}
+

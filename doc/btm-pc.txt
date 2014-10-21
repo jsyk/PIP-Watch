@@ -1,0 +1,17 @@
+#
+# PC BT dongle connecting to PIP-Watch
+#
+
+hciconfig hci0 up
+hciconfig hci0 piscan
+hcitool scan
+#   00:16:A4:04:B3:FF   PIP-Watch
+hcitool cc 00:16:A4:04:B3:FF
+hcitool auth 00:16:A4:04:B3:FF
+# Not connected
+
+#rfcomm listen 00:16:A4:04:B3:FF
+rfcomm connect rfcomm0 00:16:A4:04:B3:FF
+
+
+picocom /dev/rfcomm0 -c --omap crlf

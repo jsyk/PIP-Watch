@@ -97,12 +97,13 @@ static void draw(int show_clkface)
             CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
     } else {
         /* print clock in text in status bar */
-        u8g_SetFont(&u8g, u8g_font_helvR08);
+        // u8g_SetFont(&u8g, u8g_font_helvR08);
+        u8g_SetFont(&u8g, u8g_font_helvB08);
         char s[12];
         int k = itostr(s, 12, current_rtime.hour);
         s[k] = ':';
         k = itostr(s+k+1, 12-(k+1), current_rtime.min);
-        u8g_DrawStr(&u8g,  120, 8, s);
+        u8g_DrawStr(&u8g,  130, 8, s);
     }
 
     draw_battery(vbat_percent, 0, 0);
@@ -191,9 +192,8 @@ void GuiDrawTask(void *pvParameters)
 /*
  * Print string buffer to the display.
  */
-void printstr(char *buf)
+void printstrn(const char *buf, int cnt)
 {
-    int cnt = strlen(buf);
     char *zbuf = pvPortMalloc(sizeof(char) * (cnt+1));
     strncpy(zbuf, buf, cnt+1);
     for (int i = 0; i < cnt; ++i) {
@@ -208,6 +208,12 @@ void printstr(char *buf)
     gevnt.buf = zbuf;
     gevnt.kpar = 0;
     xQueueSend(toGuiQueue, &gevnt, 0);
+}
+
+void printstr(const char *buf)
+{
+    int cnt = strlen(buf);
+    printstrn(buf, cnt);
 }
 
 void clearterm(void)
