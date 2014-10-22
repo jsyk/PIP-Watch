@@ -5,3 +5,5 @@
 *01{"time":"2201","msgtext":"Ahoj"}
 *01{"msgtext":"Ahoj","time":"2201"}
 
+*01{"sms":{"sendername":"Alois Novak","senderphone":"789789789","time":"1003","date":"20141020","text":"Hello World!"}}
+

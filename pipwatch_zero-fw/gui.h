@@ -19,13 +19,13 @@
 #define GUI_E_BATT              2           /* battery state updated - see global variables */
 #define GUI_E_BUTTON            3           /* button pressed or released */
 #define GUI_E_CLOCK             4           /* clock updated - see global variable */
-
+#define GUI_E_NEWSMS            5           /* new sms */
 
 struct guievent {
     /* mandatory: event type */
     int evnt;
     /* optional: ptr to buffer */
-    char *buf;
+    void *buf;
     /* optional: int argument */
     int kpar;
 };

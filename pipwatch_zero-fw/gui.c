@@ -17,8 +17,6 @@
 
 u8g_t u8g;
 
-// char hello_text[4][32] = {"Pip-Watch", "  Zero  v0.1", "---------------", ""};
-
 /* terminal text: array of pointers to strings (text lines) */
 char *term_text[TERM_BUFLINES];
 
@@ -72,12 +70,6 @@ static void draw(int show_clkface)
     // u8g_SetFont(&u8g, u8g_font_helvR12);
     u8g_SetFont(&u8g, u8g_font_helvR08);
 
-#if 0
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*1, hello_text[0]);
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*2, hello_text[1]);
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*3, hello_text[2]);
-    u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*4, hello_text[3]);
-#endif
     int k = 1;
     for (int i = TERM_BUFLINES-TERM_VISLINES; i < TERM_BUFLINES; ++i) {
         if (term_text[i]) {
@@ -96,13 +88,14 @@ static void draw(int show_clkface)
         draw_clock_face(current_rtime.hour, current_rtime.min,
             CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
     } else {
-        /* print clock in text in status bar */
+        /* print clock as text in status bar */
         // u8g_SetFont(&u8g, u8g_font_helvR08);
         u8g_SetFont(&u8g, u8g_font_helvB08);
         char s[12];
-        int k = itostr(s, 12, current_rtime.hour);
-        s[k] = ':';
-        k = itostr(s+k+1, 12-(k+1), current_rtime.min);
+        itostr_rjust(s, 2, current_rtime.hour, '0');
+        s[2] = ':';
+        itostr_rjust(s+3, 2, current_rtime.min, '0');
+        s[5] = '\0';
         u8g_DrawStr(&u8g,  130, 8, s);
     }
 
@@ -181,6 +174,10 @@ void GuiDrawTask(void *pvParameters)
                 }
             }
 
+            if (gevnt.evnt == GUI_E_NEWSMS) {
+
+            }
+
             /* just in case - try to get more from the queue, otherwise go to redraw phase */
             maxwait = 1;
         }
@@ -223,5 +220,28 @@ void clearterm(void)
             vPortFree(term_text[i]);
         }
         term_text[i] = NULL;
+    }
+}
+
+int screentextsplit(const char *buf, int buflen, int pixwidth,
+                    unsigned int *lnlens, int cnt)
+{
+    const char *bufend = buf + buflen;
+    
+    int minus_w = u8g_GetGlyph(&u8g, '-');
+    int k = 0;
+    int lw = 0;
+
+    while ((buf < bufend) && (k < cnt)) {
+        char c = *buf;
+
+        if (c == 0) {
+            break;
+        }
+        if (c < 32) {
+            c = ' ';
+        }
+
+        int w = u8g_GetGlyph(&u8g, c);
     }
 }

@@ -1,13 +1,11 @@
 #include "btm.h"
 #include "main.h"
-#include "rtclock.h"
-#include "battery.h"
 #include "utils.h"
 #include "leds.h"
 #include "motor.h"
 #include "gui.h"
+#include "applnk.h"
 
-#include "jsmn.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -30,9 +28,9 @@ static int btm_rx_ack_msg(long lPort, int *seqnum);
 static int btm_rx_status(long lPort);
 static int btm_rx_statustext(long lPort, char *buf, int buflen);
 
-static int do_decode_status(const char *buf);
-static int do_rx_new_msg(char *buf);
+static void btm_send_ack(long lPort, char acktp, int seqnum);
 
+static int do_decode_status(const char *buf);
 
 int btm_state = BTMST_NonConfigured;
 
@@ -391,7 +389,6 @@ void btmInitModem()
     setBtmState(BTMST_Listening);
 }
 
-#define MSGBUFSIZE      64
 
 /* Described at the top of this file. */
 void BluetoothModemTask( void *pvParameters )
@@ -405,87 +402,6 @@ void BluetoothModemTask( void *pvParameters )
     while (1) {
         btm_rx_stream(comBTM);
     }
-
-#if 0
-    char *buf = NULL;
-
-    for( ;; )
-    {
-        if (!buf) {
-            buf = pvPortMalloc(sizeof(char) * MSGBUFSIZE);
-        }
-
-        /* Block and wait for a line */
-        usartGetLine(comBTM, buf, MSGBUFSIZE, portMAX_DELAY);
-
-        if ((strcmp(buf, "\r") == 0) || (strcmp(buf, "\n") == 0) || (strcmp(buf, "\r\n") == 0)) {
-            /* discard empty line */
-            continue;
-        }
-
-        if (strncmp(buf, "RING ", 5) == 0) {
-            /* Incomming connection -> send an ack to accept */
-            const char *atAcceptRing = "ATA\r";
-            lSerialPutString( comBTM, atAcceptRing, strlen(atAcceptRing) );
-        
-            setBtmState(BTMST_Connected);
-            Motor_Pulse(MOTOR_DUR_LONG);
-            
-            /* clear buffer */
-            buf[0] = '\0';
-            continue;
-        }
-
-        if (strncmp(buf, "CONNECT ", 8) == 0) {
-            /* Connected to a remote. */
-            /* no need to do anything else now */
-            
-            /* clear buffer */
-            buf[0] = '\0';
-            continue;
-        }
-
-        if (strncmp(buf, "NO CARRIER", 10) == 0) {
-            /* Disconnect */
-            setBtmState(BTMST_Listening);
-            /* clear buffer */
-            buf[0] = '\0';
-            continue;
-        }
-
-        for (int i = 0; i < ((int)strlen(buf))-4; ++i) {
-            if (buf[i] == '*') {
-                /* set time: *<hours><minutes> */
-                int hours = (buf[i+1]-'0')*10 + (buf[i+2]-'0');
-                int minutes = (buf[i+3]-'0')*10 + (buf[i+4]-'0');
-                hours %= 24;
-                minutes %= 60;
-                current_rtime.sec = 0;
-                current_rtime.hour = hours;
-                current_rtime.min = minutes;
-                break;
-            }
-        }
-
-        struct guievent gevnt;
-        gevnt.evnt = GUI_E_PRINTSTR;
-        gevnt.buf = buf;
-        gevnt.kpar = 0;
-
-        if (xQueueSend(toGuiQueue, &gevnt, 0) == pdTRUE) {
-            // ok; will alloc new buffer
-            buf = NULL;
-            Motor_Pulse(MOTOR_DUR_MEDIUM);
-        } else {
-            // fail; ignore, keep buffer
-        }
-
-        // motor demo
-        // GPIO_SetBits(GPIOB, 1 << 13);
-        // vTaskDelay( ( TickType_t ) 300 / portTICK_PERIOD_MS );
-        // GPIO_ResetBits(GPIOB, 1 << 13);
-    }
-#endif
 }
 
 
@@ -562,7 +478,7 @@ static int btm_rx_seqnum(long lPort, int *seqnum)
  */
 static int btm_rx_new_msg(long lPort)
 {
-    int seqnum;
+    int seqnum = 0;
 
     if (btm_rx_seqnum(lPort, &seqnum) != 0) {
         return 1;
@@ -573,16 +489,25 @@ static int btm_rx_new_msg(long lPort)
 
     if (!buf) {
         /* no memory */
+        btm_send_ack(lPort, '-', seqnum);
         return 1;
     }
 
     if (btm_rx_codetext(lPort, buf, buflen) != 0) {
+        /* code text error */
+        btm_send_ack(lPort, '-', seqnum);
         return 1;
     }
 
-    /* give the message to upper layer; the buffer is consumed */
-    do_rx_new_msg(buf);
+    /* give the message to upper layer; the buffer is consumed in any case */
+    if (applnk_rx_new_msg(buf) != 0) {
+        /* message decoding error (higher layer) */
+        btm_send_ack(lPort, '-', seqnum);
+        return 1;
+    }
 
+    /* ok received and processed, send ack */
+    btm_send_ack(lPort, '+', seqnum);
     return 0;
 }
 
@@ -769,6 +694,21 @@ static int btm_rx_status(long lPort)
     return res;
 }
 
+/**
+    Write ack/nack to btm link.
+ */
+static void btm_send_ack(long lPort, char acktp, int seqnum)
+{
+    char buf[4];
+    itostr_rjust(buf, 2, seqnum % 100, '0');
+    buf[2] = '\0';
+
+    xSerialPutChar(lPort, acktp, ( 5 / portTICK_PERIOD_MS ));
+    lSerialPutString(lPort, buf, 2);
+    xSerialPutChar(lPort, '\n', ( 5 / portTICK_PERIOD_MS ));
+}
+
+
 /* Decode and act on status message received from the modem. 
  * The status text is normally ended by <lf> and \0.
 
@@ -810,144 +750,3 @@ static int do_decode_status(const char *buf)
 }
 
 
-/* parse primitive token "time" */
-static void prs_ptok_time(const char *buf, const jsmntok_t *tok, int tcount, rtclock_t *tm)
-{
-    int i = tok[0].start - 1;
-    int hours = 0;
-    if (i+2 <= tok[0].end) {
-        hours = (buf[i+1]-'0')*10 + (buf[i+2]-'0');
-    }
-    int minutes = 0;
-    if (i+4 <= tok[0].end) {
-        minutes = (buf[i+3]-'0')*10 + (buf[i+4]-'0');
-    }
-    int seconds = 0;
-    if (i+6 <= tok[0].end) {
-        seconds = (buf[i+5]-'0')*10 + (buf[i+6]-'0');
-    }
-
-    hours %= 24;
-    minutes %= 60;
-    seconds %= 60;
-
-    tm->hour = hours;
-    tm->min = minutes;
-    tm->sec = seconds;
-}
-
-
-/* Matches tokname and jsmntp agains the current tok. Also checks that the tok is not beyond toklast.
- * Return 0 on false, 1 on match.
- */
-static int match_tok(const char *buf, const jsmntok_t *tok, const jsmntok_t *tokend, const char *tokname, int jsmntp)
-{
-    if (tok >= tokend) {
-        /* at the end - fail */
-        return 0;
-    }
-    if (tokname != NULL) {
-        if (tok->end - tok->start != strlen(tokname))
-            /* name len not match */
-            return 0;
-        if (strncmp(buf+tok->start, tokname, strlen(tokname)) != 0)
-            /* name match fail */
-            return 0;
-    }
-    if (jsmntp >= 0) {
-        if (tok->type != jsmntp)
-            /* token type match fail */
-            return 0;
-    }
-    return 1;       /* match found */
-}
-
-
-/* NOTE: the buf is consumed here! */
-static int do_rx_new_msg(char *buf)
-{
-    struct guievent gevnt;
-    jsmn_parser parser;
-    jsmntok_t *tokens = NULL;
-    int maxtok = 64;
-    // int result = 0;
-
-    jsmn_init(&parser);
-
-    tokens = pvPortMalloc(sizeof(jsmntok_t) * maxtok);
-    if (tokens == NULL) {
-        /* out of memory */
-        printstr("do_rx_new_msg: tokens malloc");
-        return 1;
-    }
-
-    int tokcnt = jsmn_parse(&parser, buf, strlen(buf), tokens, maxtok);
-
-    if (tokcnt < 0) {
-        /* parse error */
-        printstr("do_rx_new_msg: parse error");
-        vPortFree(tokens);
-        return 1;
-    }
-
-    jsmntok_t *tok = tokens;
-    const jsmntok_t *tokend = tokens+tokcnt;
-
-    if (match_tok(buf, tok, tokend, NULL, JSMN_OBJECT)) {
-        tok += 1;
-
-        while (tok < tokend) {
-            if (match_tok(buf, &tok[0], tokend, "time", JSMN_STRING)
-                    && match_tok(buf, &tok[1], tokend, NULL, JSMN_STRING)) {
-
-                prs_ptok_time(buf, &tok[1], tok[0].size, &current_rtime);
-
-                gevnt.evnt = GUI_E_PRINTSTR;
-                gevnt.buf = pvPortMalloc(16);
-                strcpy(gevnt.buf, "time-ok");
-                gevnt.kpar = 0;
-                xQueueSend(toGuiQueue, &gevnt, 0);
-
-                tok += 2;
-                continue;
-            }
-
-            if (match_tok(buf, &tok[0], tokend, "msgtext", JSMN_STRING)
-                    && match_tok(buf, &tok[1], tokend, NULL, JSMN_STRING)) {
-                printstrn(buf+tok[1].start, tok[1].end - tok[1].start);
-                tok += 2;
-                continue;
-            }
-
-            break;
-        }
-
-    }
-
-    vPortFree(tokens);
-
-    if (tok < tokend) {
-        /* not all tokens recognized; print the buf string... */
-        printstr(buf);
-    }
-
-    vPortFree(buf);
-
-#if 0
-    gevnt.evnt = GUI_E_PRINTSTR;
-    gevnt.buf = buf;
-    gevnt.kpar = 0;
-
-    if (xQueueSend(toGuiQueue, &gevnt, 0) == pdTRUE) {
-        // ok; will alloc new buffer
-        buf = NULL;
-        Motor_Pulse(MOTOR_DUR_MEDIUM);
-    } else {
-        // fail; ignore, keep buffer
-        vPortFree(buf);
-    }
-#endif
-
-
-    return 0;
-}

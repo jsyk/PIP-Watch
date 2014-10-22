@@ -40,7 +40,7 @@ PRJDIR		= prj
 U8GSRC:=$(wildcard $(U8G)/*.c)
 
 SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c jsmn.c \
-	buttons.c leds.c motor.c gui.c \
+	buttons.c leds.c motor.c gui.c applnk.c \
 	flash.c \
 	epd_imgs.c \
 	$(U8GSRC) \
@@ -61,6 +61,7 @@ SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c jsmn.c \
  	$(STLIB)/src/stm32f10x_bkp.c \
  	$(STLIB)/src/stm32f10x_adc.c \
  	$(STLIB)/src/stm32f10x_exti.c \
+ 	$(STLIB)/src/stm32f10x_dbgmcu.c \
  	$(STLIB)/src/system_stm32f10x.c \
  	$(STLIB)/src/misc.c
 

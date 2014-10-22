@@ -416,8 +416,9 @@ static void prvSetupHardware( void )
     GPIO_SetBits(BTM_Reset_Port, BTM_Reset_Pin);
 #endif
 
-    
-
+    /* ------------------------------------------------------------------------ */
+    /* Debugging in low-power modes */
+    DBGMCU_Config(DBGMCU_SLEEP | DBGMCU_STOP | DBGMCU_STANDBY, ENABLE);
 }
 
 /*-----------------------------------------------------------*/
