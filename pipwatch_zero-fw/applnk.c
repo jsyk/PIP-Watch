@@ -72,9 +72,10 @@ static int match_tok(const char *buf, const jsmntok_t *tok, const jsmntok_t *tok
 
 static int prs_otok_sms(const char *buf, const jsmntok_t *tok, int tcount, struct smstext *sms)
 {
-    const jsmntok_t *ptok = tok;
-    const jsmntok_t *tokend = tok + tcount;
+    const jsmntok_t *ptok = &tok[1];
+    const jsmntok_t *tokend = tok + 1 + tcount;
 
+    sms->tm_recv.sec = sms->tm_recv.min = sms->tm_recv.hour = 0;
     sms->sender_name = NULL;
     sms->sender_phone = NULL;
     sms->text = NULL;

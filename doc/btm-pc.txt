@@ -13,5 +13,16 @@ hcitool auth 00:16:A4:04:B3:FF
 #rfcomm listen 00:16:A4:04:B3:FF
 rfcomm connect rfcomm0 00:16:A4:04:B3:FF
 
+picocom /dev/rfcomm0 -c --omap crlf
+
+
+#####################
+#
+# Phone connecting to PC BT dongle
+#
+
+hciconfig hci0 up
+hciconfig hci0 piscan
+rfcomm listen hci0
 
 picocom /dev/rfcomm0 -c --omap crlf

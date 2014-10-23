@@ -1,11 +1,11 @@
 #include "gui.h"
-
 /* Standard includes. */
 #include <string.h>
 /* Scheduler includes. */
 #include "task.h"
 
 
+#include "sms.h"
 #include "epd.h"
 #include "rtclock.h"
 #include "battery.h"
@@ -113,6 +113,19 @@ static void draw(int show_clkface)
 #endif
 }
 
+void term_add_line(char *str)
+{
+    /* scroll terminal text by one line up */
+    if (term_text[0]) {
+        vPortFree(term_text[0]);
+        term_text[0] = NULL;
+    }
+    for (int i = 1; i < TERM_BUFLINES; ++i) {
+        term_text[i-1] = term_text[i];
+    }
+    term_text[TERM_BUFLINES-1] = str;
+}
+
 void GuiDrawTask(void *pvParameters)
 {
     u8g_InitComFn(&u8g, &u8g_dev_ssd1606_172x72_hw_spi, u8g_com_null_fn);
@@ -148,16 +161,7 @@ void GuiDrawTask(void *pvParameters)
                 }
                 strncpy(hello_text[3], gevnt.buf, 32);
 #endif
-                /* scroll terminal text by one line up */
-                if (term_text[0]) {
-                    vPortFree(term_text[0]);
-                    term_text[0] = NULL;
-                }
-                for (int i = 1; i < TERM_BUFLINES; ++i) {
-                    term_text[i-1] = term_text[i];
-                }
-                term_text[TERM_BUFLINES-1] = gevnt.buf;
-
+                term_add_line(gevnt.buf);
                 gevnt.buf = NULL;
                 ++need_disp_refresh;
             }
@@ -175,7 +179,20 @@ void GuiDrawTask(void *pvParameters)
             }
 
             if (gevnt.evnt == GUI_E_NEWSMS) {
+                struct smstext *sms = gevnt.buf;
+                char *s = newstrn("New SMS: ", 15+strlen(sms->sender_phone));
+                if (sms->sender_phone != NULL) {
+                    strcat(s, sms->sender_phone);
+                }
+                term_add_line(s);
+                if (sms->text != NULL) {
+                    term_add_line(sms->text);       // TODO: wrap
+                }
 
+                vPortFree(sms->sender_phone);
+                vPortFree(sms);
+
+                ++need_disp_refresh;
             }
 
             /* just in case - try to get more from the queue, otherwise go to redraw phase */
@@ -230,15 +247,20 @@ int screentextsplit(const char *buf, int buflen, int pixwidth,
     
     int minus_w = u8g_GetGlyph(&u8g, '-');
     int k = 0;
-    int lw = 0;
+    int lnw = 0;
 
     while ((buf < bufend) && (k < cnt)) {
-        char c = *buf;
+        char c = *buf;      // current character
 
         if (c == 0) {
+            /* end of string */
             break;
-        }
-        if (c < 32) {
+        } else if (c == '\n') {
+            /* newline is special */
+            lnlens[k++] = lnw;
+            lnw = 0;
+        } else if (c < 32) {
+            /* replace control chars by space */
             c = ' ';
         }
 

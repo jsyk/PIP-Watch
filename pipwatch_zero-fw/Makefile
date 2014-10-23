@@ -41,8 +41,6 @@ U8GSRC:=$(wildcard $(U8G)/*.c)
 
 SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c jsmn.c \
 	buttons.c leds.c motor.c gui.c applnk.c \
-	flash.c \
-	epd_imgs.c \
 	$(U8GSRC) \
 	Drivers/STM32_USART.c \
 	$(FREERTOS)/portable/GCC/ARM_CM3/port.c \

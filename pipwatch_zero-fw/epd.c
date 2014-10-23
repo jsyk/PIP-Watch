@@ -227,11 +227,25 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x01);
-    epd_sendbyte(EPD_DATA,      0xB3);      // 179+1 horizontal pixels.
+    /* number of pixels from right to redraw */
+    epd_sendbyte(EPD_DATA,      0xB3);      // whole display: 179+1 horizontal pixels.; OK
+    // epd_sendbyte(EPD_DATA,      50);      // 50+1 horizontal pixels.
     epd_sendbyte(EPD_DATA,      0x00);      // GD=SM=TB=0
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
+
+#if 0
+    // send Cmd 0F: Set scanning start position of the gate
+    epd_wait_nbusy();
+    epd_set_ncs(ENABLE);
+    epd_sendbyte(EPD_COMMAND,   0x0F);
+    /* offset of pixels from right to redraw */
+    epd_sendbyte(EPD_DATA,      10);
+    epd_set_ncs(DISABLE);
+    epd_wait_nbusy();
+#endif
+
 
 #if 1
     // send Cmd 03: VGH/VGL Set
@@ -288,10 +302,13 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x3C);
-    epd_sendbyte(EPD_DATA,      0x63);
+    epd_sendbyte(EPD_DATA,      0x63);          // fix white; OK
+    // epd_sendbyte(EPD_DATA,      0x43);          // leaves gray border
+    // epd_sendbyte(EPD_DATA,      0x03);          // Black-White transition; OK
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
+
 
     // data entry...
 
@@ -357,7 +374,7 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x11);
     // epd_sendbyte(EPD_DATA,      0x07);
-    epd_sendbyte(EPD_DATA,      0x05);
+    epd_sendbyte(EPD_DATA,      0x05);      // AM=1, ID[1:0]=01
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -436,26 +453,6 @@ void epd_draw_screen(const unsigned char *gImage)
 #endif
 
 #if 1
-    // send Cmd 0x21: option for display update
-    epd_wait_nbusy();
-    epd_set_ncs(ENABLE);
-    epd_sendbyte(EPD_COMMAND,   0x21);
-    epd_sendbyte(EPD_DATA,      0x03);      // InitialUpdate_SourceControl=3=GS0,GS3
-    epd_set_ncs(DISABLE);
-    epd_wait_nbusy();
-#endif
-
-#if 1
-    // send Cmd 0x22: sequence for display update
-    epd_wait_nbusy();
-    epd_set_ncs(ENABLE);
-    epd_sendbyte(EPD_COMMAND,   0x22);
-    epd_sendbyte(EPD_DATA,      0xC4);      // enable clock, enable CP, display pattern
-    epd_set_ncs(DISABLE);
-    epd_wait_nbusy();
-#endif
-
-#if 1
     // send Cmd 0x32: write LUT register
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
@@ -467,6 +464,29 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_wait_nbusy();
 #endif
 
+#if 1
+    // send Cmd 0x21: option for display update
+    epd_wait_nbusy();
+    epd_set_ncs(ENABLE);
+    epd_sendbyte(EPD_COMMAND,   0x21);
+    epd_sendbyte(EPD_DATA,      0x03);      // InitialUpdate_SourceControl=3=GS0,GS3; Disable Bypass - clear with inverted image, than draw the image.
+    // epd_sendbyte(EPD_DATA,      0x83);      // InitialUpdate_SourceControl=3=GS0,GS3; Enable Bypass (clear with white bg)
+    // epd_sendbyte(EPD_DATA,      0xB3);      // InitialUpdate_SourceControl=3=GS0,GS3; Enable Bypass; A[5:4]=11 (clear with black bg)
+    epd_set_ncs(DISABLE);
+    epd_wait_nbusy();
+#endif
+
+#if 1
+    // send Cmd 0x22: sequence for display update
+    epd_wait_nbusy();
+    epd_set_ncs(ENABLE);
+    epd_sendbyte(EPD_COMMAND,   0x22);
+    // epd_sendbyte(EPD_DATA,      0xC4);      // enable clock, enable CP, display pattern; OK
+    // epd_sendbyte(EPD_DATA,      0xCC);      // enable clock, enable CP, display initial (black/white transient several times), display pattern
+    epd_sendbyte(EPD_DATA,      0xC7);      // enable clock, enable CP, display pattern; Disable CP, disable clock. OK
+    epd_set_ncs(DISABLE);
+    epd_wait_nbusy();
+#endif
 
 
 #if 1
@@ -479,17 +499,18 @@ void epd_draw_screen(const unsigned char *gImage)
 #endif
 
 
-#if 1
+#if 0
     // send Cmd 0x22: sequence for display update
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x22);
-    epd_sendbyte(EPD_DATA,      0x03);      // disable CP, disable Clock
+    epd_sendbyte(EPD_DATA,      0x03);      // disable CP, disable Clock; OK
+    // epd_sendbyte(EPD_DATA,      0x01);      // disable clock - Black thick boarder around img slowly appears
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
 
-#if 1
+#if 0
     // send Cmd 0x20: Master activation - booster disable
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
@@ -515,7 +536,10 @@ void epdInitInterface(void)
     SPI_init.SPI_CPOL = SPI_CPOL_Low;   // ?
     SPI_init.SPI_CPHA = SPI_CPHA_1Edge; // ?
     SPI_init.SPI_NSS = SPI_NSS_Soft; //SPI_NSS_Hard;
-    SPI_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;         /* 4MHz / 256 = 15kHz SPI clock (very very slow!) */
+    // SPI_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;         /* 4MHz / 256 = 15kHz SPI clock (very very slow!), OK */
+    // SPI_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;         /* 4MHz / 32 = 125kHz SPI clock, OK */
+    // SPI_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;         /* 4MHz / 8 = 500kHz SPI clock, OK */
+    SPI_init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;         /* 4MHz / 8 = 1000kHz SPI clock, OK */
     SPI_init.SPI_FirstBit = SPI_FirstBit_MSB;
     SPI_init.SPI_CRCPolynomial = 0;   // ?
     SPI_Init(SPI1, &SPI_init);

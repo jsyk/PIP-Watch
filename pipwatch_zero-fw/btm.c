@@ -481,34 +481,34 @@ static int btm_rx_new_msg(long lPort)
     int seqnum = 0;
 
     if (btm_rx_seqnum(lPort, &seqnum) != 0) {
-        return 1;
+        return 1;       /* stream parsing error */
     }
 
     const int buflen = 2048;
     char *buf = pvPortMalloc(sizeof(char)*buflen);
 
     if (!buf) {
-        /* no memory */
+        /* no memory, send nack */
         btm_send_ack(lPort, '-', seqnum);
-        return 1;
+        return 1;       /* stream parsing error */
     }
 
     if (btm_rx_codetext(lPort, buf, buflen) != 0) {
         /* code text error */
         btm_send_ack(lPort, '-', seqnum);
-        return 1;
+        return 1;       /* stream parsing error */
     }
 
-    /* give the message to upper layer; the buffer is consumed in any case */
+    /* give the message to upper layer; the buffer is consumed in any case! */
     if (applnk_rx_new_msg(buf) != 0) {
         /* message decoding error (higher layer) */
         btm_send_ack(lPort, '-', seqnum);
-        return 1;
+    } else {
+        /* ok received and processed, send ack */
+        btm_send_ack(lPort, '+', seqnum);
     }
 
-    /* ok received and processed, send ack */
-    btm_send_ack(lPort, '+', seqnum);
-    return 0;
+    return 0;           /* stream parsing ok */
 }
 
 /**
