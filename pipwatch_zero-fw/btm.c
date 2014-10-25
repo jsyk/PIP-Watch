@@ -4,7 +4,7 @@
 #include "leds.h"
 #include "motor.h"
 #include "gui.h"
-#include "applnk.h"
+#include "streamlnk.h"
 
 #include <string.h>
 #include <ctype.h>
@@ -19,19 +19,7 @@
 #include "stm32f10x_it.h"
 
 
-static int btm_rx_stream(long lPort);
-static int btm_rx_seqnum(long lPort, int *seqnum);
-static int btm_rx_new_msg(long lPort);
-static int btm_rx_codetext(long lPort, char *buf, int buflen);
-static int btm_rx_escapecode(long lPort, char *cch);
-static int btm_rx_ack_msg(long lPort, int *seqnum);
-static int btm_rx_status(long lPort);
-static int btm_rx_statustext(long lPort, char *buf, int buflen);
-
-static void btm_send_ack(long lPort, char acktp, int seqnum);
-
-static int do_decode_status(const char *buf);
-
+/* the state of the bluetooth modem */
 int btm_state = BTMST_NonConfigured;
 
 
@@ -39,7 +27,7 @@ int btm_state = BTMST_NonConfigured;
 /* Remove all characters already received in USART queue */
 void usartDrainInput(long lPort)
 {
-    char ch;
+    int ch;
     while (xSerialGetChar(lPort, &ch, 0) == pdPASS)
         ;
 }
@@ -49,7 +37,7 @@ void usartDrainInput(long lPort)
  * within the timeout */
 int usartGetString(long lPort, char *buf, int buflen, TickType_t xBlockTime)
 {
-    char ch;            /* current character */
+    int ch;            /* current character */
     int cnt = 0;        /* number of chars received */
 
     while (cnt < (buflen-1)) {
@@ -77,7 +65,7 @@ int usartGetString(long lPort, char *buf, int buflen, TickType_t xBlockTime)
  * within the timeout. */
 int usartGetLine(long lPort, char *buf, int buflen, TickType_t xBlockTime)
 {
-    char ch;            /* current character */
+    int ch;            /* current character */
     int cnt = 0;        /* number of chars received */
     int expect_newline = 0;
 
@@ -405,310 +393,10 @@ void BluetoothModemTask( void *pvParameters )
 }
 
 
-/**
-    <btm_rx_stream> :=
-        . <new_msg> | <msg_ack> | <msg_nack> | <btm_status>
- */
-static int btm_rx_stream(long lPort)
-{
-    char ch = 0;
-    int seqnum = 0;
-
-    // xSerialPeekChar(lPort, &ch, portMAX_DELAY);
-    xSerialGetChar(lPort, &ch, portMAX_DELAY);
-    switch (ch) {
-        case '*':   /* start of new message */
-            return btm_rx_new_msg(lPort);
-            break;
-
-        case '+':   /* ack of a msg */
-            return btm_rx_ack_msg(lPort, &seqnum);
-            break;
-
-        case '-':   /* nack of a msg */
-            return btm_rx_ack_msg(lPort, &seqnum);
-            break;
-
-        case '\r':  /* modem message */
-            return btm_rx_status(lPort);
-            break;
-
-        default:    /* error */
-            return 1;
-            break;
-    }
-}
-
-/**
-    <seqnum> :=
-        . <digit> <digit>
- */
-static int btm_rx_seqnum(long lPort, int *seqnum)
-{
-    char ch = 0;
-    int cnt = 0;
-    *seqnum = 0;
-
-    do {
-        // xSerialPeekChar(lPort, &ch, portMAX_DELAY);
-        xSerialGetChar(lPort, &ch, portMAX_DELAY);
-
-        if (ch == '\r') {
-            /* receive status message */
-            btm_rx_status(lPort);
-            continue;
-        }
-
-        if (!isdigit((unsigned char)ch)) {
-            /* error: not a digit */
-            return 1;
-        }
-
-        *seqnum = *seqnum * 10 + (ch - '0');
-        ++cnt;
-    } while (cnt < 2);
-
-    return 0;
-}
 
 
-/**
-    <new_msg> :=
-        '*' . <seqnum> <code_text> <lf>
- */
-static int btm_rx_new_msg(long lPort)
-{
-    int seqnum = 0;
-
-    if (btm_rx_seqnum(lPort, &seqnum) != 0) {
-        return 1;       /* stream parsing error */
-    }
-
-    const int buflen = 2048;
-    char *buf = pvPortMalloc(sizeof(char)*buflen);
-
-    if (!buf) {
-        /* no memory, send nack */
-        btm_send_ack(lPort, '-', seqnum);
-        return 1;       /* stream parsing error */
-    }
-
-    if (btm_rx_codetext(lPort, buf, buflen) != 0) {
-        /* code text error */
-        btm_send_ack(lPort, '-', seqnum);
-        return 1;       /* stream parsing error */
-    }
-
-    /* give the message to upper layer; the buffer is consumed in any case! */
-    if (applnk_rx_new_msg(buf) != 0) {
-        /* message decoding error (higher layer) */
-        btm_send_ack(lPort, '-', seqnum);
-    } else {
-        /* ok received and processed, send ack */
-        btm_send_ack(lPort, '+', seqnum);
-    }
-
-    return 0;           /* stream parsing ok */
-}
-
-/**
-    <code_text> := non-visible chars below space, backslash char, are coded
-        using escape \<2-hex-num>
- */
-static int btm_rx_codetext(long lPort, char *buf, int buflen)
-{
-    char ch = 0;
-    int cnt = 0;
-
-    do {
-        if (cnt >= buflen-1) {
-            return 1;
-        }
-
-        xSerialGetChar(lPort, &ch, portMAX_DELAY);
-
-        switch (ch) {
-            case '\r':  /* modem status msg */
-                btm_rx_status(lPort);
-                break;
-
-            case '\n':  /* end of codetext */
-                buf[cnt++] = ch;
-                buf[cnt++] = 0;
-                return 0;
-                break;
-
-            case '\\':  /* escape char */
-                btm_rx_escapecode(lPort, &ch);
-                buf[cnt++] = ch;
-                break;
-
-            default:
-                if (ch >= 0 && ch < 32) {
-                    /* this char should have been escaped! */
-                    return 1;
-                }
-
-                buf[cnt++] = ch;
-                break;
-        }
-    } while (1);
-}
-
-/**
-    escapecode := 
-        '\' . <hex-char> <hex-char>
- */
-static int btm_rx_escapecode(long lPort, char *cch)
-{
-    char ch = 0;
-    *cch = 0;
-    int cnt = 0;
-
-    do {
-        xSerialGetChar(lPort, &ch, portMAX_DELAY);
-
-        if (ch == '\r') {
-            /* receive status message */
-            btm_rx_status(lPort);
-            continue;
-        }
-
-        if (!isxdigit((unsigned char)ch)) {
-            return 1;
-        }
-
-        int x = 0;
-        if (isdigit((unsigned char)ch)) {
-            x = ch - '0';
-        } else if (ch >= 'a' && ch <= 'f') {
-            x = ch - 'a' + 10;
-        } else if (ch >= 'A' && ch <= 'F') {
-            x = ch - 'A' + 10;
-        }
-
-        *cch = *cch * 16 + x;
-        ++cnt;
-    } while (cnt < 2);
-
-    return 0;
-}
-
-/**
-    btm_rx_ack_msg :=
-        '+' . <seqnum> <lf> |
-        '-' . <seqnum> <lf>
- */
-static int btm_rx_ack_msg(long lPort, int *seqnum)
-{
-    char ch = 0;
-
-    if (btm_rx_seqnum(lPort, seqnum) != 0)
-        return 1;
-
-    do {
-        xSerialGetChar(lPort, &ch, portMAX_DELAY);
-
-        switch (ch) {
-            case '\r':
-                /* receive status message */
-                btm_rx_status(lPort);
-                break;
-            
-            case '\n':
-                return 0;
-            
-            default:
-                /* error */
-                return 1;
-        }
-    } while (1);
-
-}
-
-/**
-    btm_rx_statustext :=
-        . <string text, no escaping> <cr> <lf>
- */
-static int btm_rx_statustext(long lPort, char *buf, int buflen)
-{
-    char ch;
-    int cnt = 0;
-
-    do {
-        if (cnt >= buflen-1) {
-            buf[cnt] = 0;
-            return 1;
-        }
-
-        xSerialGetChar(lPort, &ch, portMAX_DELAY);
-
-        switch (ch) {
-            case '\r':  /* modem status msg */
-                /* ignore */
-                break;
-
-            case '\n':  /* end of codetext */
-                buf[cnt++] = ch;
-                buf[cnt++] = 0;
-                return 0;
-                break;
-
-            default:
-                buf[cnt++] = ch;
-                break;
-        }
-    } while (1);
-}
-
-/**
-    <btm_status> :=
-        <cr> . <lf> <status_text> <cr> <lf>
- */
-static int btm_rx_status(long lPort)
-{
-    char ch;
-
-    xSerialGetChar(lPort, &ch, portMAX_DELAY);
-    if (ch != '\n') {
-        /* expected \n */
-        return 1;
-    }
-
-    const int buflen = 256;
-    char *buf = pvPortMalloc(sizeof(char) * buflen);
-
-    if (!buf) {
-        /* malloc failed */
-        return 1;
-    }
-    
-    if (btm_rx_statustext(lPort, buf, buflen)) {
-        /* error reading status message from modem */
-        return 1;
-    }
-
-    /* act on the status message */
-    int res = do_decode_status(buf);
-    vPortFree(buf);
-    return res;
-}
-
-/**
-    Write ack/nack to btm link.
- */
-static void btm_send_ack(long lPort, char acktp, int seqnum)
-{
-    char buf[4];
-    itostr_rjust(buf, 2, seqnum % 100, '0');
-    buf[2] = '\0';
-
-    xSerialPutChar(lPort, acktp, ( 5 / portTICK_PERIOD_MS ));
-    lSerialPutString(lPort, buf, 2);
-    xSerialPutChar(lPort, '\n', ( 5 / portTICK_PERIOD_MS ));
-}
-
-
+/* Decode (unsolicitated) modem message.
+ * Return 0 is parser should continue, 1 to reset parser into init state. */
 /* Decode and act on status message received from the modem. 
  * The status text is normally ended by <lf> and \0.
 
@@ -721,7 +409,7 @@ CONNECT <btaddr><lf>
 NO CARRIER<lf>
 
  */
-static int do_decode_status(const char *buf)
+int do_decode_btm_status(const char *buf)
 {
     if (strncmp(buf, "RING ", 5) == 0) {
         /* Incomming connection -> send an ack to accept */
@@ -731,22 +419,20 @@ static int do_decode_status(const char *buf)
         setBtmState(BTMST_Connected);
         Motor_Pulse(MOTOR_DUR_LONG);
         
-        return 0;
+        return 1;
     }
 
     if (strncmp(buf, "CONNECT ", 8) == 0) {
         /* Connected to a remote. */
         /* no need to do anything else now */
-        return 0;
+        return 1;
     }
 
     if (strncmp(buf, "NO CARRIER", 10) == 0) {
         /* Disconnect */
         setBtmState(BTMST_Listening);
-        return 0;
+        return 1;
     }
 
     return 1;
 }
-
-

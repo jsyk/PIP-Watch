@@ -47,11 +47,17 @@ Application layer
 
 
 
-NETWORK LAYER BNF
+LINK STREAM LAYER
 ====================
 
 <btm_rx_stream> :=
-    <new_msg> | <msg_ack> | <msg_nack> | <btm_status>
+    { <btm_rx_msg> }*
+    ON ERROR:
+        a) eat till <lf>
+        b) restart parser
+
+<btm_rx_msg> :=
+    . {<new_msg> | <msg_ack> | <msg_nack> | <btm_status>}
 
 <new_msg> :=
     '*' <seqnum> <code_text> <lf>
@@ -68,13 +74,15 @@ NETWORK LAYER BNF
 <btm_status> :=
     <cr><lf><status_text><cr><lf>
 
-<code_text> := non-visible chars below space, backslash char, special chars, are coded
-    using escape \<2-hex-num>
+<code_text> := non-visible chars below space  must be code using escape secquence.
+    Their presence here is either an error, or a token <cr>, <lf>.
+    Escape sequences will be expanded in application (presentation) layer, not in the stream layer!
+
 
 
 New Message:
 -------------
-*<seqnum><text><lf>
+*<seqnum><text...><lf>
 
 <seqnum> = 00
     Two decimal numbers. Random number for the first message after connection,
@@ -93,6 +101,11 @@ Msg acknowledgement
 Msg nack
 -----------
 -<seqnum><lf>
+
+
+
+APPLICATION LAYER
+===================
 
 
 

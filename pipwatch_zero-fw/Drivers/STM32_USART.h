@@ -96,10 +96,10 @@ signed long xSerialPutChar( long lPort, char cOutChar, TickType_t xBlockTime );
  * character is successfully returned (possible after waiting in the Blocked 
  * state for up to xBlockTime ticks), otherwise pdFAIL will be returned.
  */
-signed long xSerialGetChar( long lPort, char *pcRxedChar, TickType_t xBlockTime );
+signed long xSerialGetChar( long lPort, int *pcRxedChar, TickType_t xBlockTime );
 
 /* peek at a character from queue, but do not removed it */
-signed long xSerialPeekChar( long lPort, char *pcRxedChar, TickType_t xBlockTime );
+signed long xSerialPeekChar( long lPort, int *pcRxedChar, TickType_t xBlockTime );
 
 /*
  * Send a string of characters to a COM port.  As supplied 2 COM ports are 

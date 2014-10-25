@@ -5,7 +5,7 @@
 #include "stm32f10x_spi.h"
 #include "epd.h"
 #include "task.h"
-#include "epd_imgs.h"
+// #include "epd_imgs.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -74,71 +74,6 @@ uint8_t bitreverse(uint8_t b)
     return b;
 }
 
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct;
-
-  /** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-  */
-
-  /*Enable or disable APB2 peripheral clock */
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-
-  /*Configure GPIO pin : PA */
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA */
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_6;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-  GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB */
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_2|GPIO_Pin_10;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /** SPI1 GPIO Configuration  
-  PA5   ------> SPI1_SCK
-  PA7   ------> SPI1_MOSI
-  */
-
-  /*Enable or disable APB2 peripheral clock */
-  // RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-
-  /*Configure GPIO pin : PA5=SCLK, PA7=SDA */
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5|GPIO_Pin_7;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /** USART1 GPIO Configuration  
-  PA9   ------> USART1_TX
-  PA10   ------> USART1_RX
-  PA11   ------> USART1_CTS
-  PA12   ------> USART1_RTS
-  */
-
-  /*Enable or disable APB2 peripheral clock */
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-
-  /*Configure GPIO pin : PA */
-  /*
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9|GPIO_Pin_10|GPIO_Pin_11|GPIO_Pin_12;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_Init(GPIOA, &GPIO_InitStruct);
-  */
-}
 
 
 void epd_wait_nbusy(void)
@@ -520,14 +455,79 @@ void epd_draw_screen(const unsigned char *gImage)
 #endif
 }
 
+
+/* Initialize interface to the display:
+ * SPI and GPIO pins */
 void epdInitInterface(void)
 {
     /* Initialize all configured peripherals */
-    MX_GPIO_Init();
+    GPIO_InitTypeDef GPIO_InitStruct;
 
+    /** Configure pins as 
+        * Analog 
+        * Input 
+        * Output
+        * EVENT_OUT
+        * EXTI
+    */
+
+    /*Enable or disable APB2 peripheral clock */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+
+    /*Configure GPIO pin : PA */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /*Configure GPIO pin : PA */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_6;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /*Configure GPIO pin : PB */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_2|GPIO_Pin_10;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /** SPI1 GPIO Configuration  
+    PA5   ------> SPI1_SCK
+    PA7   ------> SPI1_MOSI
+    */
+
+    /*Enable or disable APB2 peripheral clock */
+    // RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+
+    /*Configure GPIO pin : PA5=SCLK, PA7=SDA */
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5|GPIO_Pin_7;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /** USART1 GPIO Configuration  
+    PA9   ------> USART1_TX
+    PA10   ------> USART1_RX
+    PA11   ------> USART1_CTS
+    PA12   ------> USART1_RTS
+    */
+
+    /*Enable or disable APB2 peripheral clock */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+
+    /*Configure GPIO pin : PA */
+    /*
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9|GPIO_Pin_10|GPIO_Pin_11|GPIO_Pin_12;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+    */
+    
     /*Enable or disable APB2 peripheral clock */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
+    /* Init SPI port */
     SPI_InitTypeDef SPI_init;
     SPI_StructInit(&SPI_init);
     SPI_init.SPI_Direction = SPI_Direction_1Line_Tx;  // SPI_Direction_2Lines_FullDuplex
@@ -549,6 +549,8 @@ void epdInitInterface(void)
 }
 
 
+/* Initialize the EPD display - the SSD1606 controller in it.
+ * The interface must have been initialized prior to this! */
 void epdInitSSD1606(void)
 {
     GPIO_ResetBits(EPD_Port_nCS, EPD_Pin_nCS);       // nCS=0 enable

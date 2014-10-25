@@ -18,4 +18,8 @@
 
 void BluetoothModemTask( void *pvParameters );
 
+/* Decode (unsolicitated) modem message.
+ * Return 0 is parser should continue, 1 to reset parser into init state. */
+int do_decode_btm_status(const char *buf);
+
 #endif

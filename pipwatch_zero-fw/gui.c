@@ -4,13 +4,14 @@
 /* Scheduler includes. */
 #include "task.h"
 
-
 #include "sms.h"
 #include "epd.h"
 #include "rtclock.h"
 #include "battery.h"
 #include "buttons.h"
 #include "utils.h"
+#include "gui_textbox.h"
+
 
 /* --------------------------------------------------------------------------------- */
 /* Global variables */
@@ -18,7 +19,7 @@
 u8g_t u8g;
 
 /* terminal text: array of pointers to strings (text lines) */
-char *term_text[TERM_BUFLINES];
+// char *term_text[TERM_BUFLINES];
 
 
 /* queue of struct guievent for the GUI task */
@@ -61,7 +62,7 @@ static void draw_battery(int percent, int px, int py)
     u8g_DrawStr(&u8g,  px+BATTERY_WIDTH+4, py+BATTERY_HEIGHT, s);
 }
 
-static void draw(int show_clkface)
+static void draw(int show_clkface, struct guitextbox *term_tbox)
 {
 #define TXT_OFFS_Y      10
 // #define TXT_LINESPC_Y   15
@@ -70,6 +71,12 @@ static void draw(int show_clkface)
     // u8g_SetFont(&u8g, u8g_font_helvR12);
     u8g_SetFont(&u8g, u8g_font_helvR08);
 
+    struct guipoint apos;
+    apos.x = 0;
+    apos.y = TXT_OFFS_Y;
+    term_tbox->win.draw_window_fn(&u8g, &term_tbox->win, apos);
+
+#if 0
     int k = 1;
     for (int i = TERM_BUFLINES-TERM_VISLINES; i < TERM_BUFLINES; ++i) {
         if (term_text[i]) {
@@ -77,7 +84,7 @@ static void draw(int show_clkface)
         }
         ++k;
     }
-
+#endif
 
     /* clock face */
 #define CFACE_CENTER_X      136
@@ -104,7 +111,7 @@ static void draw(int show_clkface)
 #if 1
     /* print temperature */
     char s[8];
-    k = itostr(s, 8, temp_celsius);
+    int k = itostr(s, 8, temp_celsius);
     s[k] = 'o'; //0xB0;
     s[k+1] = 'C';
     s[k+2] = '\0';
@@ -113,6 +120,7 @@ static void draw(int show_clkface)
 #endif
 }
 
+#if 0
 void term_add_line(char *str)
 {
     /* scroll terminal text by one line up */
@@ -125,15 +133,20 @@ void term_add_line(char *str)
     }
     term_text[TERM_BUFLINES-1] = str;
 }
+#endif
 
 void GuiDrawTask(void *pvParameters)
 {
     u8g_InitComFn(&u8g, &u8g_dev_ssd1606_172x72_hw_spi, u8g_com_null_fn);
     u8g_SetDefaultForegroundColor(&u8g);
 
-    for (int i = 0; i < TERM_BUFLINES; ++i) {
-        term_text[i] = NULL;
-    }
+    struct guitextbox *term_tbox = gui_textbox_alloc(TERM_VISLINES);
+    term_tbox->win.size.x = WIDTH;
+    term_tbox->win.size.y = HEIGHT - 10;
+
+    // for (int i = 0; i < TERM_BUFLINES; ++i) {
+    //     term_text[i] = NULL;
+    // }
 
     struct guievent gevnt;
     int need_disp_refresh = 1;
@@ -144,7 +157,7 @@ void GuiDrawTask(void *pvParameters)
             /* refresh display - picture loop */
             u8g_FirstPage(&u8g);
             do {
-                draw(show_clkface);
+                draw(show_clkface, term_tbox);
             } while ( u8g_NextPage(&u8g) );
 
             need_disp_refresh = 0;
@@ -155,13 +168,7 @@ void GuiDrawTask(void *pvParameters)
 
         while (xQueueReceive(toGuiQueue, &gevnt, maxwait) == pdTRUE) {
             if ((gevnt.evnt == GUI_E_PRINTSTR) && gevnt.buf) {
-#if 0
-                for (int i = 0; i < 3; ++i) {
-                    strncpy(hello_text[i], hello_text[i+1], 32);
-                }
-                strncpy(hello_text[3], gevnt.buf, 32);
-#endif
-                term_add_line(gevnt.buf);
+                stringlist_scroll_add(term_tbox, gevnt.buf);
                 gevnt.buf = NULL;
                 ++need_disp_refresh;
             }
@@ -184,14 +191,17 @@ void GuiDrawTask(void *pvParameters)
                 if (sms->sender_phone != NULL) {
                     strcat(s, sms->sender_phone);
                 }
-                term_add_line(s);
+                stringlist_scroll_add(term_tbox, s);
                 if (sms->text != NULL) {
-                    term_add_line(sms->text);       // TODO: wrap
+                    char *txt = newstrn(sms->text, 35);
+                    if (strlen(txt) > 32) {
+                        strtrimn(txt, 3);
+                        strcat(txt, "...");
+                    }
+                    stringlist_scroll_add(term_tbox, txt);
                 }
 
-                vPortFree(sms->sender_phone);
-                vPortFree(sms);
-
+                sms_free(sms);
                 ++need_disp_refresh;
             }
 
@@ -230,6 +240,7 @@ void printstr(const char *buf)
     printstrn(buf, cnt);
 }
 
+#if 0
 void clearterm(void)
 {
     for (int i = 0; i < TERM_BUFLINES; ++i) {
@@ -239,31 +250,47 @@ void clearterm(void)
         term_text[i] = NULL;
     }
 }
+#endif
 
 int screentextsplit(const char *buf, int buflen, int pixwidth,
                     unsigned int *lnlens, int cnt)
 {
     const char *bufend = buf + buflen;
     
-    int minus_w = u8g_GetGlyph(&u8g, '-');
+    // int minus_w = u8g_GetGlyph(&u8g, '-');
     int k = 0;
-    int lnw = 0;
+    int nchars = 0;
+    int pixw = 0;
 
-    while ((buf < bufend) && (k < cnt)) {
-        char c = *buf;      // current character
+    while ((buf < bufend) && (k < cnt-1)) {
+        int c = (unsigned char)*buf++;      // current character
 
         if (c == 0) {
             /* end of string */
+            lnlens[k++] = nchars;
             break;
         } else if (c == '\n') {
             /* newline is special */
-            lnlens[k++] = lnw;
-            lnw = 0;
-        } else if (c < 32) {
+            lnlens[k++] = nchars;
+            nchars = 0;
+            pixw = 0;
+            continue;
+        } else if (c < 32 || c > 127) {
             /* replace control chars by space */
             c = ' ';
         }
 
-        int w = u8g_GetGlyph(&u8g, c);
+        int w = u8g_GetGlyphDeltaX(&u8g, c);
+
+        if (pixw + w > pixwidth) {
+            lnlens[k++] = nchars;
+            nchars = 0;
+            pixw = 0;
+        }
+
+        ++nchars;
+        pixw += w;
     }
+
+    return k;
 }

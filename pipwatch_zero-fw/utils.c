@@ -112,3 +112,17 @@ char *newstrn(const char *buf, int n)
     }
     return s;
 }
+
+/* Trim string by up to n characters from the end. */
+char *strtrimn(char *buf, int n)
+{
+    if (buf != NULL) {
+        int len = strlen(buf);
+        if (n > len) {
+            n = len;
+        }
+        buf[len - n] = '\0';
+    }
+    return buf;
+}
+

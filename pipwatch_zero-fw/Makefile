@@ -32,7 +32,7 @@ STLIB = ../ST32F10x_Library
 U8G = ../u8glib_arm/src
 
 ###############################################################################
-NAME   		= stm32frtos1
+NAME   		= stm32pipwatchzero
 CPU			= cortex-m3
 PRJDIR		= prj
 ###############################################################################
@@ -40,7 +40,8 @@ PRJDIR		= prj
 U8GSRC:=$(wildcard $(U8G)/*.c)
 
 SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c jsmn.c \
-	buttons.c leds.c motor.c gui.c applnk.c \
+	buttons.c leds.c motor.c gui.c applnk.c streamlnk.c sms.c \
+	gui_textbox.c \
 	$(U8GSRC) \
 	Drivers/STM32_USART.c \
 	$(FREERTOS)/portable/GCC/ARM_CM3/port.c \
@@ -111,7 +112,7 @@ CFLAGS += -mno-long-calls
 
 # all:				$(NAME)_ram.lst $(NAME)_ram.bin $(NAME)_flash.lst $(NAME)_flash.bin
 
-all:				$(NAME)_flash.lst $(NAME)_flash.bin
+all:				$(NAME)_flash.lst $(NAME)_flash.bin $(NAME)_flash.elf
 
 %o: 				%c
 					$(CC) -c $(CFLAGS) -I . $(INCDIR) $< -o $@

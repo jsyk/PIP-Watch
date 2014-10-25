@@ -178,7 +178,7 @@ int applnk_rx_new_msg(char *buf)
             if (match_tok(buf, &tok[0], tokend, "sms", JSMN_STRING)
                     && match_tok(buf, &tok[1], tokend, NULL, JSMN_OBJECT)) {
                 /* parse sms */
-                struct smstext *sms = pvPortMalloc(sizeof(struct smstext));
+                struct smstext *sms = sms_alloc();
                 if (sms == NULL) {
                     vPortFree(tokens);
                     vPortFree(buf);

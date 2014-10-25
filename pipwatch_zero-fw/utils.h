@@ -13,9 +13,11 @@ int itostr(char *buf, int buflen, int x);
  */
 int itostr_rjust(char *buf, int buflen, int x, char fillch);
 
-/* Allocate new string and copy from buf up to n characters,
- * alloc 1 more for '\0'
+/* Allocate new string of length n+1 and copy from buf up to n characters.
  */
 char *newstrn(const char *buf, int n);
+
+/* Trim string by up to n characters from the end. */
+char *strtrimn(char *buf, int n);
 
 #endif

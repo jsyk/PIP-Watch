@@ -10,4 +10,9 @@ struct smstext {
     char *text;
 };
 
+
+struct smstext *sms_alloc(void);
+
+void sms_free(struct smstext *sms);
+
 #endif

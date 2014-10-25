@@ -92,12 +92,12 @@
 /* Queues are used to hold characters that are waiting to be transmitted.  This
 constant sets the maximum number of characters that can be contained in such a
 queue at any one time. */
-#define serTX_QUEUE_LEN					( 100 )
+#define serTX_QUEUE_LEN					( 120 )
 
 /* Queues are used to hold characters that have been received but not yet 
 processed.  This constant sets the maximum number of characters that can be 
 contained in such a queue. */
-#define serRX_QUEUE_LEN					( 100 )
+#define serRX_QUEUE_LEN					( 120 )
 
 /* The maximum amount of time that calls to lSerialPutString() should wait for
 there to be space to post each character to the queue of characters waiting
@@ -231,12 +231,13 @@ GPIO_InitTypeDef GPIO_InitStructure;
 }
 /*-----------------------------------------------------------*/
 
-signed long xSerialGetChar( long lPort, char *pcRxedChar, TickType_t xBlockTime )
+signed long xSerialGetChar( long lPort, int *pcRxedChar, TickType_t xBlockTime )
 {
     long lReturn = pdFAIL;
 
 	if( lPort < serNUM_COM_PORTS ) 
 	{
+		*pcRxedChar = 0;
 		if( xQueueReceive( xRxedChars[ lPort ], pcRxedChar, xBlockTime ) == pdPASS )
 		{
 			lReturn = pdPASS;
@@ -249,12 +250,13 @@ signed long xSerialGetChar( long lPort, char *pcRxedChar, TickType_t xBlockTime 
 
 /*-----------------------------------------------------------*/
 
-signed long xSerialPeekChar( long lPort, char *pcRxedChar, TickType_t xBlockTime )
+signed long xSerialPeekChar( long lPort, int *pcRxedChar, TickType_t xBlockTime )
 {
     long lReturn = pdFAIL;
 
     if( lPort < serNUM_COM_PORTS ) 
     {
+		*pcRxedChar = 0;
         if( xQueuePeek( xRxedChars[ lPort ], pcRxedChar, xBlockTime ) == pdPASS )
         {
             lReturn = pdPASS;
