@@ -143,6 +143,11 @@ void GuiDrawTask(void *pvParameters)
     struct guitextbox *term_tbox = gui_textbox_alloc(TERM_VISLINES);
     term_tbox->win.size.x = WIDTH;
     term_tbox->win.size.y = HEIGHT - 10;
+    term_tbox->markup = 1;          /* expands <b>... */
+    term_tbox->escexpand = 1;       /* expands "\\n" */
+    term_tbox->wraplines = 1;       /* wraps long lines, otherwise they are trimmed */
+    textlines_scroll_add(&term_tbox->txt, newstrn("<b>PIP-Watch ZERO</b>\n  fw1.0\\n  hw02", -1));
+    textlines_scroll_add(&term_tbox->txt, newstrn("Lorem ipsum dolor re ipsum dolor alea dolor ypsum rea lorema.", -1));
 
     // for (int i = 0; i < TERM_BUFLINES; ++i) {
     //     term_text[i] = NULL;
@@ -168,7 +173,7 @@ void GuiDrawTask(void *pvParameters)
 
         while (xQueueReceive(toGuiQueue, &gevnt, maxwait) == pdTRUE) {
             if ((gevnt.evnt == GUI_E_PRINTSTR) && gevnt.buf) {
-                stringlist_scroll_add(term_tbox, gevnt.buf);
+                textlines_scroll_add(&term_tbox->txt, gevnt.buf);
                 gevnt.buf = NULL;
                 ++need_disp_refresh;
             }
@@ -187,18 +192,18 @@ void GuiDrawTask(void *pvParameters)
 
             if (gevnt.evnt == GUI_E_NEWSMS) {
                 struct smstext *sms = gevnt.buf;
-                char *s = newstrn("New SMS: ", 15+strlen(sms->sender_phone));
+                char *s = newstrn("<b>New SMS:</b> ", 15+strlen(sms->sender_phone));
                 if (sms->sender_phone != NULL) {
                     strcat(s, sms->sender_phone);
                 }
-                stringlist_scroll_add(term_tbox, s);
+                textlines_scroll_add(&term_tbox->txt, s);
                 if (sms->text != NULL) {
                     char *txt = newstrn(sms->text, 35);
                     if (strlen(txt) > 32) {
                         strtrimn(txt, 3);
                         strcat(txt, "...");
                     }
-                    stringlist_scroll_add(term_tbox, txt);
+                    textlines_scroll_add(&term_tbox->txt, txt);
                 }
 
                 sms_free(sms);
@@ -252,6 +257,7 @@ void clearterm(void)
 }
 #endif
 
+#if 0
 int screentextsplit(const char *buf, int buflen, int pixwidth,
                     unsigned int *lnlens, int cnt)
 {
@@ -294,3 +300,4 @@ int screentextsplit(const char *buf, int buflen, int pixwidth,
 
     return k;
 }
+#endif

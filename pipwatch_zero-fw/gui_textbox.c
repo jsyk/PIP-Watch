@@ -13,73 +13,6 @@ static int prs_tokname(struct guitextbox *tbox, struct textlines_iterator *txtit
 
 
 
-/* initialize textline iterator to the beginning */
-void textlines_iterator_init(struct textlines_iterator *it, char **textlines, int nlines)
-{
-    memset(it, 0, sizeof(struct textlines_iterator));
-    it->textlines = textlines;
-    it->nlines = nlines;
-    /* find the first character */
-    for (it->k = 0; it->k < it->nlines; it->k++) {
-        if (it->textlines[it->k] != NULL) {
-            it->m = 0;
-            /* found a character! */
-            return;
-        }
-    }
-}
-
-/* return the current character, or -1 if at the end */
-int textlines_iterator_peekc(struct textlines_iterator *it)
-{
-    if (it->textlines == NULL || it->k >= it->nlines || it->k < 0)
-        return -1;
-    return (unsigned char)it->textlines[it->k][it->m];
-}
-
-/* advance to the next character; return -1 if at the end */
-int textlines_iterator_next(struct textlines_iterator *it)
-{
-    if (it->textlines == NULL || it->k >= it->nlines || it->k < 0)
-        return -1;
-
-    if (it->textlines[it->k] != NULL) {
-        if (it->textlines[it->k][it->m] != '\0') {
-            /* not at the end of string, so just advance */
-            it->m++;
-            return 0;
-        }
-    }
-
-    /* else at the end of string, skip to next line. */
-    it->m = 0;
-    it->k++;
-
-    for ( ; it->k < it->nlines; it->k++) {
-        if (it->textlines[it->k] != NULL) {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-
-void stringlist_scroll_add(struct guitextbox *tbox, char *str)
-{
-    if (tbox->textlines) {
-        if (tbox->textlines[0]) {
-            vPortFree(tbox->textlines[0]);
-            tbox->textlines[0] = NULL;
-        }
-        for (int i = 1; i < tbox->nlines; ++i) {
-            tbox->textlines[i-1] = tbox->textlines[i];
-        }
-        tbox->textlines[tbox->nlines-1] = str;
-    }
-}
-
-
 /* ---------------------------------------------------------------------- */
 
 /* allocate new textbox gui element */
@@ -89,11 +22,7 @@ struct guitextbox *gui_textbox_alloc(int nlines)
     if (tbox != NULL) {
         memset(tbox, 0, sizeof(struct guitextbox));
         tbox->win.draw_window_fn = gui_textbox_draw_cb;
-        
-        if (nlines > 0) {
-            tbox->nlines = nlines;
-            tbox->textlines = pvPortMalloc(sizeof(char*) * nlines);
-        }
+        textlines_init(&tbox->txt, nlines);
     }
     return tbox;
 }
@@ -106,11 +35,13 @@ int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
 
     /* textlines reader at the beginning */
     struct textlines_iterator txtit;
-    textlines_iterator_init(&txtit, tbox->textlines, tbox->nlines);
+    textlines_iterator_init(&txtit, &tbox->txt);
 
     char *stok = pvPortMalloc(sizeof(char) * 32);
     int px = abspos.x;
     int py = abspos.y + 10;
+
+    int bold = 0;
 
     do {
         int c = prs_token(tbox, &txtit, stok, 32);
@@ -127,8 +58,14 @@ int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
 
                 if (strncmp(stok, "<b", 2) == 0) {
                     /* inc bold style */
+                    ++bold;
+                    u8g_SetFont(u8g, u8g_font_helvB08);
                 } else if (strncmp(stok, "</b", 3) == 0) {
                     /* dec bold style */
+                    --bold;
+                    if (bold == 0) {
+                        u8g_SetFont(u8g, u8g_font_helvR08);
+                    }
                 } 
             }
         } else if (c == 0 || c == '\n') {
@@ -147,6 +84,10 @@ int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
             }
             /* advance x position by glyph width */
             px += u8g_GetGlyphDeltaX(u8g, c);
+            if (tbox->wraplines && px > abspos.x + tbox->win.size.x) {
+                px = abspos.x;
+                py += 10;       // TBD font height
+            }
         }
 
     } while (textlines_iterator_peekc(&txtit) != -1);

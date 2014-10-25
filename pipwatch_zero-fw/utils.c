@@ -101,6 +101,9 @@ int itostr_rjust(char *buf, int buflen, int x, char fillch)
  */
 char *newstrn(const char *buf, int n)
 {
+    if (n <= 0) {
+        n = strlen(buf);
+    }
     char *s = pvPortMalloc((n + 1) * sizeof(char));
     if (s != NULL) {
         if (buf != NULL) {
@@ -126,3 +129,99 @@ char *strtrimn(char *buf, int n)
     return buf;
 }
 
+
+/* initialize textline iterator to the beginning */
+void textlines_iterator_init(struct textlines_iterator *it, const struct textlines *txt)
+{
+    memset(it, 0, sizeof(struct textlines_iterator));
+    it->txt = txt;
+    /* find the first character */
+    for (it->k = 0; it->k < it->txt->nlines; it->k++) {
+        if (it->txt->textlines[it->k] != NULL) {
+            it->m = 0;
+            /* found a character! */
+            return;
+        }
+    }
+}
+
+/* return the current character, or -1 if at the end */
+int textlines_iterator_peekc(struct textlines_iterator *it)
+{
+    const struct textlines *txt = it->txt;
+    if (txt->textlines == NULL || it->k >= txt->nlines || it->k < 0)
+        return -1;
+    return (unsigned char)txt->textlines[it->k][it->m];
+}
+
+/* advance to the next character; return -1 if at the end */
+int textlines_iterator_next(struct textlines_iterator *it)
+{
+    const struct textlines *txt = it->txt;
+
+    if (txt->textlines == NULL || it->k >= txt->nlines || it->k < 0)
+        return -1;
+
+    if (txt->textlines[it->k] != NULL) {
+        if (txt->textlines[it->k][it->m] != '\0') {
+            /* not at the end of string, so just advance */
+            it->m++;
+            return 0;
+        }
+    }
+
+    /* else at the end of string, skip to next line. */
+    it->m = 0;
+    it->k++;
+
+    for ( ; it->k < txt->nlines; it->k++) {
+        if (txt->textlines[it->k] != NULL) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/* initialize textlines */
+void textlines_init(struct textlines *txt, int nlines)
+{
+    memset(txt, 0, sizeof(struct textlines));
+    if (nlines > 0) {
+        txt->textlines = pvPortMalloc(sizeof(char*) * nlines);
+        txt->nlines = nlines;
+    }
+}
+
+
+/* Append a new line to the textline, scrolling the textlines up if needed
+ * The total number of lines does not exceed nlines. */
+void textlines_scroll_add(struct textlines *tbox, char *str)
+{
+    if (tbox->textlines) {
+        /* find the last line from the back that is NULL */
+        int k;
+        for (k = tbox->nlines-1 ; k >= 0; k--) {
+            if (tbox->textlines[k] != NULL) {
+                break;
+            }
+        }
+        if (k < 0) {
+            /* stringlist is empty, so put str in the first line */
+            k = 0;
+        } else if (k == tbox->nlines-1) {
+            /* stringlist is full, must scroll up */
+            if (tbox->textlines[0]) {
+                vPortFree(tbox->textlines[0]);
+                tbox->textlines[0] = NULL;
+            }
+            for (int i = 1; i < tbox->nlines; ++i) {
+                tbox->textlines[i-1] = tbox->textlines[i];
+            }
+        } else {
+            /* found last string at position k */
+            k++;
+        }
+        tbox->textlines[k] = str;
+    }
+}
