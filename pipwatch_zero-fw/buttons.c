@@ -76,8 +76,6 @@ void ButtonsTask(void *pvParameters)
             (btnsts[BTN1].st) ? LED_INTENS_100 : LED_INTENS_0, 
             (btnsts[BTN2].st) ? LED_INTENS_100 : LED_INTENS_0);
 
-        Motor_Pulse(MOTOR_DUR_SHORT);
-
         struct guievent gevnt;
         gevnt.evnt = GUI_E_BUTTON;
         gevnt.buf = NULL;
@@ -85,6 +83,7 @@ void ButtonsTask(void *pvParameters)
 
         if (btnsts[btn].st) {
             gevnt.kpar |= BTN_PRESSED;
+            Motor_Pulse(MOTOR_DUR_SHORT);
         } else{
             gevnt.kpar |= BTN_RELEASED;
         }

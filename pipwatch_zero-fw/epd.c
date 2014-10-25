@@ -68,7 +68,7 @@ const unsigned char *gImg_list[] = {
 };
 #endif
 
-uint8_t bitreverse(uint8_t b)
+static inline uint8_t bitreverse(uint8_t b)
 {
     b = ((b * 0x0802LU & 0x22110LU) | (b * 0x8020LU & 0x88440LU)) * 0x10101LU >> 16; 
     return b;
@@ -163,8 +163,8 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x01);
     /* number of pixels from right to redraw */
-    epd_sendbyte(EPD_DATA,      0xB3);      // whole display: 179+1 horizontal pixels.; OK
-    // epd_sendbyte(EPD_DATA,      50);      // 50+1 horizontal pixels.
+    epd_sendbyte(EPD_DATA,      0xB3);      // whole display: 179+1 vertical pixel columns.; OK
+    // epd_sendbyte(EPD_DATA,      50);      // 50+1 vertical pixel columns.
     epd_sendbyte(EPD_DATA,      0x00);      // GD=SM=TB=0
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();

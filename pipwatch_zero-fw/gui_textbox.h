@@ -1,8 +1,33 @@
 #ifndef GUI_TEXTBOX_H
 #define GUI_TEXTBOX_H
 
-#include "gui.h"
+#include "gui_window.h"
 #include "utils.h"
+
+
+typedef enum {
+	FF_HELV,
+} fontfamily_t;
+
+typedef enum {
+	COLOR_FOREGR,
+	COLOR_MID,
+	COLOR_BACKGR
+} color_t;
+
+
+struct fontstyle {
+	int bold;
+	int italic;
+	int underline;
+	int font_size;
+	int extra_lnspc;
+	fontfamily_t font_family;
+	color_t color;
+};
+
+/* init default font style */
+void fontstyle_init(struct fontstyle *fs);
 
 
 /* ---------------------------------------------------------------------- */
@@ -10,10 +35,7 @@
 struct guitextbox {
     /* the window base class; MUST BE THE FIRST ELEMENT */
     struct guiwindow win;
-    /* array of strings. NULL strings are ignored */
-    // char **textlines;			// TODO make this into stringlist
-    /* number of positions in textlines */
-    // int nlines;
+    /* text lines */
     struct textlines txt;
     /* interpret formating markup (according to rfc1896) ? */
     int markup;
@@ -22,6 +44,8 @@ struct guitextbox {
     int wraplines;
     /* expand escape codes entered using '\' */
     int escexpand;
+    /* default font style - initial state when drawing */
+    struct fontstyle ini_fontstyle;
 };
 
 

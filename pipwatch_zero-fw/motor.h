@@ -7,7 +7,7 @@
 #define MOTOR_Pin           GPIO_Pin_13
 
 
-#define MOTOR_DUR_SHORT         (( TickType_t ) 70 / portTICK_PERIOD_MS)
+#define MOTOR_DUR_SHORT         (( TickType_t ) 50 / portTICK_PERIOD_MS)
 #define MOTOR_DUR_MEDIUM         (( TickType_t ) 150 / portTICK_PERIOD_MS)
 #define MOTOR_DUR_LONG         (( TickType_t ) 400 / portTICK_PERIOD_MS)
 

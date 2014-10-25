@@ -12,6 +12,6 @@ void epdInitInterface(void);
 
 void epdInitSSD1606(void);
 
-void epdShowPicturesTask(void *pvParameters);
+// void epdShowPicturesTask(void *pvParameters);
 
 #endif

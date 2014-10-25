@@ -41,7 +41,7 @@ U8GSRC:=$(wildcard $(U8G)/*.c)
 
 SRC = main.c epd.c rtclock.c btm.c battery.c utils.c u8g_arm.c jsmn.c \
 	buttons.c leds.c motor.c gui.c applnk.c streamlnk.c sms.c \
-	gui_textbox.c \
+	gui_textbox.c gui_menu.c \
 	$(U8GSRC) \
 	Drivers/STM32_USART.c \
 	$(FREERTOS)/portable/GCC/ARM_CM3/port.c \
@@ -126,6 +126,9 @@ all:				$(NAME)_flash.lst $(NAME)_flash.bin $(NAME)_flash.elf
 %O: 				%S
 					$(AS) -c $(ASFLAGS) -I . $(INCDIR) $< -o $@
 
+makefile.dep: $(SRC)
+	$(CC) -MM $(CFLAGS) $(SRC) >makefile.dep
+
 $(NAME)_flash.lst:	$(NAME)_flash.elf
 					$(OD) $(ODFLAGS) $< > $@
 
@@ -138,7 +141,7 @@ $(NAME)_flash.bin:	$(NAME)_flash.elf
 $(NAME)_ram.bin:	$(NAME)_ram.elf
 					$(CP) $(CPFLAGS) $< $@
 
-$(NAME)_flash.elf:	$(OBJ) 
+$(NAME)_flash.elf:	makefile.dep $(OBJ) 
 	$(LD) $(DEBUG_GDB) $(LFLAGS) -T $(LDSCR) -o $(NAME)_flash.elf $(OBJ) $(LIBS)
 	$(TRGT)size $@
 
@@ -153,7 +156,7 @@ $(NAME)_flash.elf:	$(OBJ)
 
 clean:
 	rm -f $(OBJ) $(OBJUC4)
-	rm -f $(NAME)_flash.elf $(NAME)_flash.lst  $(NAME)_flash.bin
+	rm -f $(NAME)_flash.elf $(NAME)_flash.lst  $(NAME)_flash.bin makefile.dep
 
 stflash: $(NAME)_flash.bin
 	st-flash write $(NAME)_flash.bin 0x08000000
@@ -164,3 +167,5 @@ ocdserver:
 
 ocdgdb: $(NAME)_flash.elf
 	arm-none-eabi-gdb --eval-command="target remote localhost:3333" $(NAME)_flash.elf
+
+-include makefile.dep

@@ -6,6 +6,7 @@
 // #include "FreeRTOS.h"
 #include "task.h"
 // #include "queue.h"
+#include <string.h>
 
 /* Library includes. */
 #include "stm32f10x_it.h"
@@ -16,7 +17,6 @@
 
 rtclock_t current_rtime;
 
-// extern QueueHandle_t toDisplayStrQueue;
 
 
 #define SINTAB_MULT         34
@@ -39,17 +39,34 @@ int absrot60(int angle)
     return angle;
 }
 
-void draw_clock_face(unsigned int hours, unsigned int minutes, 
-    int center_x, int center_y, int radius, u8g_t *u8g)
+/* allocate new guiclockface */
+struct guiclockface *gui_clockface_alloc(void)
 {
+    struct guiclockface *f =  pvPortMalloc(sizeof(struct guiclockface));
+    if (f) {
+        memset(f, 0, sizeof(struct guiclockface));
+        f->win.draw_window_fn = gui_draw_clock_face_cb;
+    }
+    return f;
+}
+
+/* callback to draw the clock face */
+int gui_draw_clock_face_cb(u8g_t *u8g, struct guiwindow *win,
+                struct guipoint abspos)
+{
+    struct guiclockface *f = (struct guiclockface *)win;
+
+    int center_x = f->center_x + abspos.x;
+    int center_y = f->center_y + abspos.y;
+
     /* clear background to white */
     u8g_SetDefaultBackgroundColor(u8g);
-    u8g_DrawBox(u8g, center_x-radius, center_y-radius, 2*radius, 2*radius);
+    u8g_DrawBox(u8g, center_x-f->radius, center_y-f->radius, 2*f->radius, 2*f->radius);
     u8g_SetDefaultForegroundColor(u8g);
 
     /* face */
-    u8g_DrawCircle(u8g, center_x, center_y, radius, U8G_DRAW_ALL);
-    u8g_DrawCircle(u8g, center_x, center_y, radius+1, U8G_DRAW_ALL);
+    u8g_DrawCircle(u8g, center_x, center_y, f->radius, U8G_DRAW_ALL);
+    u8g_DrawCircle(u8g, center_x, center_y, f->radius+1, U8G_DRAW_ALL);
 
     /* hour markers */
     for (int h = 0; h < 12; ++h) {
@@ -58,8 +75,8 @@ void draw_clock_face(unsigned int hours, unsigned int minutes,
             sintab60[h*5] + center_y, 2, U8G_DRAW_ALL);
     }
 
-    hours = (hours % 12);
-    minutes = minutes % 60;
+    int hours = (f->hours % 12);
+    int minutes = f->minutes % 60;
 
     /* hours hand */
     int angle = absrot60(-(short)hours*5 - (short)minutes/12 + 15);
@@ -78,6 +95,8 @@ void draw_clock_face(unsigned int hours, unsigned int minutes,
     y2 = (-sintab60[angle])*30/34 + center_y;         // sin, y-axis is inverted
 
     u8g_DrawLine(u8g, center_x, center_y, x2, y2);
+
+    return 0;
 }
 
 void RTC_IRQHandler(void)

@@ -18,9 +18,6 @@
 
 u8g_t u8g;
 
-/* terminal text: array of pointers to strings (text lines) */
-// char *term_text[TERM_BUFLINES];
-
 
 /* queue of struct guievent for the GUI task */
 QueueHandle_t toGuiQueue = NULL;
@@ -62,7 +59,7 @@ static void draw_battery(int percent, int px, int py)
     u8g_DrawStr(&u8g,  px+BATTERY_WIDTH+4, py+BATTERY_HEIGHT, s);
 }
 
-static void draw(int show_clkface, struct guitextbox *term_tbox)
+static void draw(struct guiclockface *clkface, struct guitextbox *term_tbox)
 {
 #define TXT_OFFS_Y      10
 // #define TXT_LINESPC_Y   15
@@ -76,24 +73,13 @@ static void draw(int show_clkface, struct guitextbox *term_tbox)
     apos.y = TXT_OFFS_Y;
     term_tbox->win.draw_window_fn(&u8g, &term_tbox->win, apos);
 
-#if 0
-    int k = 1;
-    for (int i = TERM_BUFLINES-TERM_VISLINES; i < TERM_BUFLINES; ++i) {
-        if (term_text[i]) {
-            u8g_DrawStr(&u8g,  0, TXT_OFFS_Y+TXT_LINESPC_Y*k, term_text[i]);
-        }
-        ++k;
-    }
-#endif
 
     /* clock face */
-#define CFACE_CENTER_X      136
-#define CFACE_CENTER_Y      36
-#define CFACE_RADIUS        34
-    if (show_clkface) {
+    if (clkface) {
         /* draw round clock face */
-        draw_clock_face(current_rtime.hour, current_rtime.min,
-            CFACE_CENTER_X, CFACE_CENTER_Y, CFACE_RADIUS, &u8g);
+        apos.x = CFACE_CENTER_X - CFACE_RADIUS;
+        apos.y = CFACE_CENTER_Y - CFACE_RADIUS;
+        clkface->win.draw_window_fn(&u8g, &clkface->win, apos);
     } else {
         /* print clock as text in status bar */
         // u8g_SetFont(&u8g, u8g_font_helvR08);
@@ -120,20 +106,6 @@ static void draw(int show_clkface, struct guitextbox *term_tbox)
 #endif
 }
 
-#if 0
-void term_add_line(char *str)
-{
-    /* scroll terminal text by one line up */
-    if (term_text[0]) {
-        vPortFree(term_text[0]);
-        term_text[0] = NULL;
-    }
-    for (int i = 1; i < TERM_BUFLINES; ++i) {
-        term_text[i-1] = term_text[i];
-    }
-    term_text[TERM_BUFLINES-1] = str;
-}
-#endif
 
 void GuiDrawTask(void *pvParameters)
 {
@@ -149,20 +121,27 @@ void GuiDrawTask(void *pvParameters)
     textlines_scroll_add(&term_tbox->txt, newstrn("<b>PIP-Watch ZERO</b>\n  fw1.0\\n  hw02", -1));
     textlines_scroll_add(&term_tbox->txt, newstrn("Lorem ipsum dolor re ipsum dolor alea dolor ypsum rea lorema.", -1));
 
-    // for (int i = 0; i < TERM_BUFLINES; ++i) {
-    //     term_text[i] = NULL;
-    // }
+    struct guiclockface *clkface = gui_clockface_alloc();
+    clkface->win.size.x = 2*CFACE_RADIUS;
+    clkface->win.size.y = 2*CFACE_RADIUS;
+    clkface->center_x = CFACE_RADIUS; //CFACE_CENTER_X;
+    clkface->center_y = CFACE_RADIUS; //CFACE_CENTER_Y;
+    clkface->radius = CFACE_RADIUS;
+
 
     struct guievent gevnt;
     int need_disp_refresh = 1;
     int show_clkface = 1;
 
     for (;;) {
+        clkface->hours = current_rtime.hour;
+        clkface->minutes = current_rtime.min;
+
         if (need_disp_refresh) {
             /* refresh display - picture loop */
             u8g_FirstPage(&u8g);
             do {
-                draw(show_clkface, term_tbox);
+                draw((show_clkface ? clkface : NULL), term_tbox);
             } while ( u8g_NextPage(&u8g) );
 
             need_disp_refresh = 0;
@@ -244,60 +223,3 @@ void printstr(const char *buf)
     int cnt = strlen(buf);
     printstrn(buf, cnt);
 }
-
-#if 0
-void clearterm(void)
-{
-    for (int i = 0; i < TERM_BUFLINES; ++i) {
-        if (term_text[i]) {
-            vPortFree(term_text[i]);
-        }
-        term_text[i] = NULL;
-    }
-}
-#endif
-
-#if 0
-int screentextsplit(const char *buf, int buflen, int pixwidth,
-                    unsigned int *lnlens, int cnt)
-{
-    const char *bufend = buf + buflen;
-    
-    // int minus_w = u8g_GetGlyph(&u8g, '-');
-    int k = 0;
-    int nchars = 0;
-    int pixw = 0;
-
-    while ((buf < bufend) && (k < cnt-1)) {
-        int c = (unsigned char)*buf++;      // current character
-
-        if (c == 0) {
-            /* end of string */
-            lnlens[k++] = nchars;
-            break;
-        } else if (c == '\n') {
-            /* newline is special */
-            lnlens[k++] = nchars;
-            nchars = 0;
-            pixw = 0;
-            continue;
-        } else if (c < 32 || c > 127) {
-            /* replace control chars by space */
-            c = ' ';
-        }
-
-        int w = u8g_GetGlyphDeltaX(&u8g, c);
-
-        if (pixw + w > pixwidth) {
-            lnlens[k++] = nchars;
-            nchars = 0;
-            pixw = 0;
-        }
-
-        ++nchars;
-        pixw += w;
-    }
-
-    return k;
-}
-#endif

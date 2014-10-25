@@ -12,6 +12,37 @@ static int prs_token(struct guitextbox *tbox, struct textlines_iterator *txtit, 
 static int prs_tokname(struct guitextbox *tbox, struct textlines_iterator *txtit, char *strtoken, int maxlen);
 
 
+/* init default font style */
+void fontstyle_init(struct fontstyle *fs)
+{
+    memset(fs, 0, sizeof(struct fontstyle));
+    fs->font_size = 8;
+    fs->font_family = FF_HELV;
+    fs->extra_lnspc = 2;
+    fs->color = COLOR_FOREGR;
+}
+
+
+void fontstyle_activate(struct fontstyle *fs, u8g_t *u8g)
+{
+    const u8g_fntpgm_uint8_t *font = u8g_font_helvR08;
+
+    if (fs->bold) {
+        if (fs->font_family == FF_HELV) {
+            if (fs->font_size == 8)
+                font = u8g_font_helvB08;
+        }
+    } else {
+        if (fs->font_family == FF_HELV) {
+            if (fs->font_size == 8)
+                font = u8g_font_helvR08;
+        }
+
+    }
+
+    u8g_SetFont(u8g, font);
+}
+
 
 /* ---------------------------------------------------------------------- */
 
@@ -23,6 +54,7 @@ struct guitextbox *gui_textbox_alloc(int nlines)
         memset(tbox, 0, sizeof(struct guitextbox));
         tbox->win.draw_window_fn = gui_textbox_draw_cb;
         textlines_init(&tbox->txt, nlines);
+        fontstyle_init(&tbox->ini_fontstyle);
     }
     return tbox;
 }
@@ -38,10 +70,10 @@ int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
     textlines_iterator_init(&txtit, &tbox->txt);
 
     char *stok = pvPortMalloc(sizeof(char) * 32);
+    struct fontstyle fs = tbox->ini_fontstyle;
     int px = abspos.x;
-    int py = abspos.y + 10;
-
-    int bold = 0;
+    int py = abspos.y + fs.font_size + fs.extra_lnspc;
+    int fs_changed = 1;
 
     do {
         int c = prs_token(tbox, &txtit, stok, 32);
@@ -58,35 +90,42 @@ int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
 
                 if (strncmp(stok, "<b", 2) == 0) {
                     /* inc bold style */
-                    ++bold;
-                    u8g_SetFont(u8g, u8g_font_helvB08);
+                    fs.bold++;
+                    fs_changed++;
                 } else if (strncmp(stok, "</b", 3) == 0) {
                     /* dec bold style */
-                    --bold;
-                    if (bold == 0) {
-                        u8g_SetFont(u8g, u8g_font_helvR08);
+                    if (--fs.bold < 0) {
+                        fs.bold = 0;
                     }
+                    fs_changed++;
                 } 
             }
         } else if (c == 0 || c == '\n') {
             /* '\0' or '\n' are new lines */
             /* TBD decode special handling of lf */
             px = abspos.x;
-            py += 10;       // TBD font height
+            py += fs.font_size + fs.extra_lnspc;
             c = 0;
         }
 
         if (c != 0) {
             /* print character using the current style */
+            if (fs_changed) {
+                fontstyle_activate(&fs, u8g);
+                fs_changed = 0;
+            }
+
+            /* check if visible */
             if ((px < abspos.x + tbox->win.size.x) 
-                    && (py-10 < abspos.y + tbox->win.size.y)) {
+                    && (py-(fs.font_size+fs.extra_lnspc) < abspos.y + tbox->win.size.y)) {
+                /* draw glyph */
                 u8g_DrawGlyph(u8g,  px, py, c);
             }
             /* advance x position by glyph width */
             px += u8g_GetGlyphDeltaX(u8g, c);
             if (tbox->wraplines && px > abspos.x + tbox->win.size.x) {
                 px = abspos.x;
-                py += 10;       // TBD font height
+                py += fs.font_size + fs.extra_lnspc;
             }
         }
 
