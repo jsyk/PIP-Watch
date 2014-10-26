@@ -1,11 +1,9 @@
 /* Includes ------------------------------------------------------------------*/
-// #include "stm32f1xx_hal.h"
 #include <unistd.h>
 #include <FreeRTOS.h>
 #include "stm32f10x_spi.h"
 #include "epd.h"
 #include "task.h"
-// #include "epd_imgs.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -35,6 +33,10 @@
 #endif
 
 #define PAGE_HEIGHT     HEIGHT
+
+/* screen update range */
+int epd_updrange_x1; 
+int epd_updrange_x2;
 
 
 const unsigned char epd_lut_init_data[90] = {
@@ -141,8 +143,10 @@ void epd_set_ncs(FunctionalState NewState)
     }
 }
 
-
-void epd_draw_screen(const unsigned char *gImage)
+/* Redraw the screen - send gImage.
+ * Update range is [updr_x1, updr_x2] = [0, 179]
+ */
+void epd_draw_screen(const unsigned char *gImage, int updr_x1, int updr_x2)
 {
     int i;
 
@@ -163,20 +167,21 @@ void epd_draw_screen(const unsigned char *gImage)
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x01);
     /* number of pixels from right to redraw */
-    epd_sendbyte(EPD_DATA,      0xB3);      // whole display: 179+1 vertical pixel columns.; OK
+    // epd_sendbyte(EPD_DATA,      0xB3);      // whole display: 179+1 vertical pixel columns.; OK
     // epd_sendbyte(EPD_DATA,      50);      // 50+1 vertical pixel columns.
+    epd_sendbyte(EPD_DATA,      updr_x2-updr_x1+1);
     epd_sendbyte(EPD_DATA,      0x00);      // GD=SM=TB=0
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
 
-#if 0
+#if 1
     // send Cmd 0F: Set scanning start position of the gate
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x0F);
     /* offset of pixels from right to redraw */
-    epd_sendbyte(EPD_DATA,      10);
+    epd_sendbyte(EPD_DATA,      WIDTH-1-updr_x2);
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -709,8 +714,6 @@ uint8_t u8g_dev_ssd1606_172x72_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void 
     switch(msg)
     {
         case U8G_DEV_MSG_INIT:
-            // u8g_InitCom(u8g, dev, U8G_SPI_CLK_CYCLE_300NS);
-            // u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x32_init_seq);
             epdInitSSD1606();
             break;
 
@@ -719,7 +722,7 @@ uint8_t u8g_dev_ssd1606_172x72_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void 
 
         case U8G_DEV_MSG_PAGE_NEXT: {
                 u8g_pb_t *pb = (u8g_pb_t *)(dev->dev_mem);
-                epd_draw_screen(pb->buf);
+                epd_draw_screen(pb->buf, epd_updrange_x1, epd_updrange_x2);
                 break;
             }
 

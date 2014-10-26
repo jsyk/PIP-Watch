@@ -11,6 +11,7 @@
 #include "buttons.h"
 #include "utils.h"
 #include "gui_textbox.h"
+#include "gui_menu.h"
 
 
 /* --------------------------------------------------------------------------------- */
@@ -128,6 +129,10 @@ void GuiDrawTask(void *pvParameters)
     clkface->center_y = CFACE_RADIUS; //CFACE_CENTER_Y;
     clkface->radius = CFACE_RADIUS;
 
+    struct guimenu *menu = gui_menu_alloc(6);
+    menu->win.size.x = 10;
+    menu->win.size.y = 72;
+
 
     struct guievent gevnt;
     int need_disp_refresh = 1;
@@ -142,6 +147,18 @@ void GuiDrawTask(void *pvParameters)
             u8g_FirstPage(&u8g);
             do {
                 draw((show_clkface ? clkface : NULL), term_tbox);
+                epd_updrange_x1 = 0;
+                epd_updrange_x2 = WIDTH - 1;
+
+#if 0
+                struct guipoint abspos;
+                abspos.x = WIDTH - 51;
+                abspos.y = 0;
+                menu->win.draw_window_fn(&u8g, &menu->win, abspos);
+
+                epd_updrange_x1 = abspos.x;
+                epd_updrange_x2 = abspos.x + 10;
+#endif
             } while ( u8g_NextPage(&u8g) );
 
             need_disp_refresh = 0;
@@ -166,7 +183,15 @@ void GuiDrawTask(void *pvParameters)
                     /* pressed the middle button */
                     show_clkface = !show_clkface;
                     ++need_disp_refresh;
+
+                    if (--menu->selected < 0) menu->selected = 0;
                 }
+
+                if ((gevnt.kpar & BTN_PRESSED) && ((gevnt.kpar & BTNx_M) == BTN2)) {
+                    /* pressed the lower button */
+                    if (++menu->selected > 6) menu->selected = 6;
+                    ++need_disp_refresh;
+                }                
             }
 
             if (gevnt.evnt == GUI_E_NEWSMS) {
