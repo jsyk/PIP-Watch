@@ -40,21 +40,21 @@ int absrot60(int angle)
 }
 
 /* allocate new guiclockface */
-struct guiclockface *gui_clockface_alloc(void)
+struct GuiClockface *gui_clockface_alloc(void)
 {
-    struct guiclockface *f =  pvPortMalloc(sizeof(struct guiclockface));
+    struct GuiClockface *f =  pvPortMalloc(sizeof(struct GuiClockface));
     if (f) {
-        memset(f, 0, sizeof(struct guiclockface));
+        memset(f, 0, sizeof(struct GuiClockface));
         f->win.draw_window_fn = gui_draw_clock_face_cb;
     }
     return f;
 }
 
 /* callback to draw the clock face */
-int gui_draw_clock_face_cb(u8g_t *u8g, struct guiwindow *win,
-                struct guipoint abspos)
+int gui_draw_clock_face_cb(u8g_t *u8g, struct GuiWindow *win,
+                struct GuiPoint abspos)
 {
-    struct guiclockface *f = (struct guiclockface *)win;
+    struct GuiClockface *f = (struct GuiClockface *)win;
 
     int center_x = f->center_x + abspos.x;
     int center_y = f->center_y + abspos.y;

@@ -32,11 +32,11 @@ void fontstyle_init(struct fontstyle *fs);
 
 /* ---------------------------------------------------------------------- */
 
-struct guitextbox {
+struct GuiTextbox {
     /* the window base class; MUST BE THE FIRST ELEMENT */
-    struct guiwindow win;
+    struct GuiWindow win;
     /* text lines */
-    struct textlines txt;
+    struct TextLines txt;
     /* interpret formating markup (according to rfc1896) ? */
     int markup;
     /* spread long textlines over several print lines (1),
@@ -95,12 +95,12 @@ struct guitextbox {
 
 
 /* allocate new textbox gui element */
-struct guitextbox *gui_textbox_alloc(int nlines);
+struct GuiTextbox *gui_textbox_alloc(int nlines);
 
 
 /* drawing callback for textbox */
-int gui_textbox_draw_cb(u8g_t *pu8g, struct guiwindow *win,
-                struct guipoint abspos);
+int gui_textbox_draw_cb(u8g_t *pu8g, struct GuiWindow *win,
+                struct GuiPoint abspos);
 
 
 #endif

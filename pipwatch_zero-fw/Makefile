@@ -127,7 +127,7 @@ all:				$(NAME)_flash.lst $(NAME)_flash.bin $(NAME)_flash.elf
 					$(AS) -c $(ASFLAGS) -I . $(INCDIR) $< -o $@
 
 makefile.dep: $(SRC)
-	$(CC) -MM $(CFLAGS) $(SRC) >makefile.dep
+	$(CC) -MM -I. $(CFLAGS) $(SRC) >makefile.dep
 
 $(NAME)_flash.lst:	$(NAME)_flash.elf
 					$(OD) $(ODFLAGS) $< > $@

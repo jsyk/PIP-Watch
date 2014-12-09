@@ -5,9 +5,6 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 
-/* battery symbol graphical dimensions */
-#define BATTERY_WIDTH       20
-#define BATTERY_HEIGHT      8
 
 #define CFACE_CENTER_X      136
 #define CFACE_CENTER_Y      36

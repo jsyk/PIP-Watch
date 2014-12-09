@@ -5,11 +5,11 @@
 
 
 /* allocate new menu gui element */
-struct guimenu *gui_menu_alloc(int n_items)
+struct GuiMenu *gui_menu_alloc(int n_items)
 {
-    struct guimenu *m = pvPortMalloc(sizeof(struct guimenu));
+    struct GuiMenu *m = pvPortMalloc(sizeof(struct GuiMenu));
     if (m) {
-        memset(m, 0, sizeof(struct guimenu));
+        memset(m, 0, sizeof(struct GuiMenu));
         textlines_init(&m->items, n_items);
         m->win.draw_window_fn = gui_menu_draw_cb;
     }
@@ -17,11 +17,21 @@ struct guimenu *gui_menu_alloc(int n_items)
 }
 
 
+static const char *menutext[] = {
+    "Lorem",
+    "Ipsum",
+    "Dolor",
+    "Sit",
+    "Amet",
+    "Consecteur",
+    "Adipiscing"
+};
+
 /* drawing callback for menu */
-int gui_menu_draw_cb(u8g_t *u8g, struct guiwindow *win,
-                struct guipoint abspos)
+int gui_menu_draw_cb(u8g_t *u8g, struct GuiWindow *win,
+                struct GuiPoint abspos)
 {
-    struct guimenu *menu = (struct guimenu *)win;
+    struct GuiMenu *menu = (struct GuiMenu *)win;
 
     int y0 = menu->selected*10;
 
@@ -34,6 +44,19 @@ int gui_menu_draw_cb(u8g_t *u8g, struct guiwindow *win,
             abspos.x+10, y0+5,
             abspos.x, y0+10);
 
-    
+    u8g_SetDefaultForegroundColor(u8g);
+
+    for (int i = 0; i < 7; ++i) {
+        y0 = (i+1)*10;
+        const char *s = menutext[i];
+
+        if (i == menu->selected) {
+            u8g_SetFont(u8g, u8g_font_helvB08);
+        } else {
+            u8g_SetFont(u8g, u8g_font_helvR08);
+        }
+        u8g_DrawStr(u8g,  abspos.x+12, y0, s);
+    }
+
     return 0;
 }

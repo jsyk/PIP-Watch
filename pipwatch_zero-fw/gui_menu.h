@@ -7,11 +7,11 @@
 
 
 /* GUI Menu */
-struct guimenu {
+struct GuiMenu {
     /* the window base class; MUST BE THE FIRST ELEMENT */
-    struct guiwindow win;
+    struct GuiWindow win;
     /* menu items */
-    struct textlines items;
+    struct TextLines items;
     /* scroll offset */
     int scrolloffs;
     /* selected item index; -1 if none */
@@ -23,11 +23,11 @@ struct guimenu {
 };
 
 /* allocate new menu gui element */
-struct guimenu *gui_menu_alloc(int n_items);
+struct GuiMenu *gui_menu_alloc(int n_items);
 
 
 /* drawing callback for menu */
-int gui_menu_draw_cb(u8g_t *u8g, struct guiwindow *win,
-                struct guipoint abspos);
+int gui_menu_draw_cb(u8g_t *u8g, struct GuiWindow *win,
+                struct GuiPoint abspos);
 
 #endif

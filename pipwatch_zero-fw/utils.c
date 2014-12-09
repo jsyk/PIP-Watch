@@ -131,9 +131,9 @@ char *strtrimn(char *buf, int n)
 
 
 /* initialize textline iterator to the beginning */
-void textlines_iterator_init(struct textlines_iterator *it, const struct textlines *txt)
+void textlines_iterator_init(struct TextLines_iterator *it, const struct TextLines *txt)
 {
-    memset(it, 0, sizeof(struct textlines_iterator));
+    memset(it, 0, sizeof(struct TextLines_iterator));
     it->txt = txt;
     /* find the first character */
     for (it->k = 0; it->k < it->txt->nlines; it->k++) {
@@ -146,18 +146,18 @@ void textlines_iterator_init(struct textlines_iterator *it, const struct textlin
 }
 
 /* return the current character, or -1 if at the end */
-int textlines_iterator_peekc(struct textlines_iterator *it)
+int textlines_iterator_peekc(struct TextLines_iterator *it)
 {
-    const struct textlines *txt = it->txt;
+    const struct TextLines *txt = it->txt;
     if (txt->textlines == NULL || it->k >= txt->nlines || it->k < 0)
         return -1;
     return (unsigned char)txt->textlines[it->k][it->m];
 }
 
 /* advance to the next character; return -1 if at the end */
-int textlines_iterator_next(struct textlines_iterator *it)
+int textlines_iterator_next(struct TextLines_iterator *it)
 {
-    const struct textlines *txt = it->txt;
+    const struct TextLines *txt = it->txt;
 
     if (txt->textlines == NULL || it->k >= txt->nlines || it->k < 0)
         return -1;
@@ -184,11 +184,12 @@ int textlines_iterator_next(struct textlines_iterator *it)
 }
 
 /* initialize textlines */
-void textlines_init(struct textlines *txt, int nlines)
+void textlines_init(struct TextLines *txt, int nlines)
 {
-    memset(txt, 0, sizeof(struct textlines));
+    memset(txt, 0, sizeof(struct TextLines));
     if (nlines > 0) {
         txt->textlines = pvPortMalloc(sizeof(char*) * nlines);
+        memset(txt->textlines, 0, sizeof(char*) * nlines);
         txt->nlines = nlines;
     }
 }
@@ -196,7 +197,7 @@ void textlines_init(struct textlines *txt, int nlines)
 
 /* Append a new line to the textline, scrolling the textlines up if needed
  * The total number of lines does not exceed nlines. */
-void textlines_scroll_add(struct textlines *tbox, char *str)
+void textlines_scroll_add(struct TextLines *tbox, char *str)
 {
     if (tbox->textlines) {
         /* find the last line from the back that is NULL */

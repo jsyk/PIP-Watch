@@ -40,35 +40,36 @@ int epd_updrange_x2;
 
 
 const unsigned char epd_lut_init_data[90] = {
-    0x00,0x00,0x00,0x55,0x00,0x00,0x55,0x55,
-    0x00,0x55,0x55,0x55,0x55,0x55,0x55,0x55,
-    0x55,0xAA,0x55,0x55,0xAA,0xAA,0xAA,0xAA,
-    0x05,0x05,0x05,0x05,0x15,0x15,0x15,0x15,
-    0x01,0x01,0x01,0x01,0x00,0x00,0x00,0x00,
+    /* VS[0-(00 to 33)] */
+    0x00,0x00,0x00,0x55,
+    /* VS[1-(00 to 33)] */
+    0x00,0x00,0x55,0x55,
+    /* VS[2-] */
+    0x00,0x55,0x55,0x55,
+    /* VS[3-] */
+    0x55,0x55,0x55,0x55,
+    /* VS[4-] */
+    0x55,0xAA,0x55,0x55,
+    /* VS[5-] */
+    0xAA,0xAA,0xAA,0xAA,
+    /* VS[6-] */
+    0x05,0x05,0x05,0x05,
+    /* VS[7-] */
+    0x15,0x15,0x15,0x15,
+    /* VS[8-] */
+    0x01,0x01,0x01,0x01,
+    /* VS[9-] (only the first 8 phases are used) */
+    0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    /* 20 phase times: TP[0] to TP[19] */
     0x34,0x32,0xF1,0x74,0x14,0x00,0x00,0x00,
     0x00,0x00,
 };
 
-#if 0
-const unsigned char *gImg_list[] = {
-    gImage_chessboard1,
-    gImage_eluosi,
-    gImage_gongsi,
-    gImage_hanwen,
-    gImage_nokiac5,
-    gImage_OED,
-    gImage_oedbook,
-    gImage_riwen,
-    gImage_shousi,
-    gImage_SUNING,
-    NULL            // end of list marker
-};
-#endif
 
 static inline uint8_t bitreverse(uint8_t b)
 {
@@ -192,7 +193,8 @@ void epd_draw_screen(const unsigned char *gImage, int updr_x1, int updr_x2)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x03);
-    epd_sendbyte(EPD_DATA,      0xEA);
+    epd_sendbyte(EPD_DATA,      0xEA);          // A[7:4]=0xE (VGH=22.0V), A[3:0]=0x0xA (VGL=-20.0V) [POR]
+    // epd_sendbyte(EPD_DATA,      0xA4);          // A[7:4]=0xE (VGH=22.0V), A[3:0]=0x0xA (VGL=-20.0V) [POR]
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -202,7 +204,8 @@ void epd_draw_screen(const unsigned char *gImage, int updr_x1, int updr_x2)
     epd_wait_nbusy();
     epd_set_ncs(ENABLE);
     epd_sendbyte(EPD_COMMAND,   0x04);
-    epd_sendbyte(EPD_DATA,      0x0A);
+    epd_sendbyte(EPD_DATA,      0x0A);          // A[3:0]=0xA (VSH/VSL=15V) [POR]
+    // epd_sendbyte(EPD_DATA,      0x00);          // A[3:0]=0x0 (VSH/VSL=10V)
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
@@ -416,6 +419,29 @@ void epd_draw_screen(const unsigned char *gImage, int updr_x1, int updr_x2)
     epd_wait_nbusy();
 #endif
 
+#if 0
+#if 1
+    // send Cmd 0x22: sequence for display update
+    epd_wait_nbusy();
+    epd_set_ncs(ENABLE);
+    epd_sendbyte(EPD_COMMAND,   0x22);
+    epd_sendbyte(EPD_DATA,      0xC0);      // enable clock, enable CP
+    // epd_sendbyte(EPD_DATA,      0xCC);      // enable clock, enable CP, display initial (black/white transient several times), display pattern
+    // epd_sendbyte(EPD_DATA,      0xC7);      // enable clock, enable CP, display pattern; Disable CP, disable clock. OK
+    epd_set_ncs(DISABLE);
+    epd_wait_nbusy();
+#endif
+#if 1
+    // send Cmd 0x20: Master activation - redraw the screen
+    epd_wait_nbusy();
+    epd_set_ncs(ENABLE);
+    epd_sendbyte(EPD_COMMAND,   0x20);
+    epd_set_ncs(DISABLE);
+    epd_wait_nbusy();
+#endif
+    vTaskDelay(( ( TickType_t ) 100 / portTICK_PERIOD_MS ));
+#endif
+
 #if 1
     // send Cmd 0x22: sequence for display update
     epd_wait_nbusy();
@@ -428,7 +454,6 @@ void epd_draw_screen(const unsigned char *gImage, int updr_x1, int updr_x2)
     epd_wait_nbusy();
 #endif
 
-
 #if 1
     // send Cmd 0x20: Master activation - redraw the screen
     epd_wait_nbusy();
@@ -437,6 +462,7 @@ void epd_draw_screen(const unsigned char *gImage, int updr_x1, int updr_x2)
     epd_set_ncs(DISABLE);
     epd_wait_nbusy();
 #endif
+
 
 
 #if 0

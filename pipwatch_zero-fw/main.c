@@ -69,8 +69,7 @@ int main( void )
 	/* Set up the clocks and memory interface. */
 	prvSetupHardware();
 
-    // toDisplayStrQueue = xQueueCreate(16, sizeof(char *));
-    toGuiQueue = xQueueCreate(16, sizeof(struct guievent));
+    toGuiQueue = xQueueCreate(32, sizeof(struct guievent));
 
     current_rtime.sec = 0;
     current_rtime.min = 39;

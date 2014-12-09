@@ -6,10 +6,10 @@
 #include <string.h>
 #include <ctype.h>
 
-static int prs_echar(struct guitextbox *tbox, struct textlines_iterator *txtit, int *ch);
-static int prs_esccode(struct guitextbox *tbox, struct textlines_iterator *txtit, int *ch);
-static int prs_token(struct guitextbox *tbox, struct textlines_iterator *txtit, char *strtoken, int maxlen);
-static int prs_tokname(struct guitextbox *tbox, struct textlines_iterator *txtit, char *strtoken, int maxlen);
+static int prs_echar(struct GuiTextbox *tbox, struct TextLines_iterator *txtit, int *ch);
+static int prs_esccode(struct GuiTextbox *tbox, struct TextLines_iterator *txtit, int *ch);
+static int prs_token(struct GuiTextbox *tbox, struct TextLines_iterator *txtit, char *strtoken, int maxlen);
+static int prs_tokname(struct GuiTextbox *tbox, struct TextLines_iterator *txtit, char *strtoken, int maxlen);
 
 
 /* init default font style */
@@ -47,11 +47,11 @@ void fontstyle_activate(struct fontstyle *fs, u8g_t *u8g)
 /* ---------------------------------------------------------------------- */
 
 /* allocate new textbox gui element */
-struct guitextbox *gui_textbox_alloc(int nlines)
+struct GuiTextbox *gui_textbox_alloc(int nlines)
 {
-    struct guitextbox *tbox = pvPortMalloc(sizeof(struct guitextbox));
+    struct GuiTextbox *tbox = pvPortMalloc(sizeof(struct GuiTextbox));
     if (tbox != NULL) {
-        memset(tbox, 0, sizeof(struct guitextbox));
+        memset(tbox, 0, sizeof(struct GuiTextbox));
         tbox->win.draw_window_fn = gui_textbox_draw_cb;
         textlines_init(&tbox->txt, nlines);
         fontstyle_init(&tbox->ini_fontstyle);
@@ -60,13 +60,13 @@ struct guitextbox *gui_textbox_alloc(int nlines)
 }
 
 /* drawing callback for textbox */
-int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
-                struct guipoint abspos)
+int gui_textbox_draw_cb(u8g_t *u8g, struct GuiWindow *win,
+                struct GuiPoint abspos)
 {
-    struct guitextbox *tbox = (struct guitextbox *)win;
+    struct GuiTextbox *tbox = (struct GuiTextbox *)win;
 
     /* textlines reader at the beginning */
-    struct textlines_iterator txtit;
+    struct TextLines_iterator txtit;
     textlines_iterator_init(&txtit, &tbox->txt);
 
     char *stok = pvPortMalloc(sizeof(char) * 32);
@@ -141,7 +141,7 @@ int gui_textbox_draw_cb(u8g_t *u8g, struct guiwindow *win,
         . normal char except '\'
         | '\' <esccode>
 */
-static int prs_echar(struct guitextbox *tbox, struct textlines_iterator *txtit, int *ch)
+static int prs_echar(struct GuiTextbox *tbox, struct TextLines_iterator *txtit, int *ch)
 {
     *ch = textlines_iterator_peekc(txtit);
     textlines_iterator_next(txtit);
@@ -161,7 +161,7 @@ static int prs_echar(struct guitextbox *tbox, struct textlines_iterator *txtit, 
     <esccode> ::=
         . 'n' | '\' | '"' | {'u' <unicode_seq>}
 */
-static int prs_esccode(struct guitextbox *tbox, struct textlines_iterator *txtit, int *ch)
+static int prs_esccode(struct GuiTextbox *tbox, struct TextLines_iterator *txtit, int *ch)
 {
     *ch = textlines_iterator_peekc(txtit);
     textlines_iterator_next(txtit);
@@ -190,7 +190,7 @@ static int prs_esccode(struct guitextbox *tbox, struct textlines_iterator *txtit
         | '<' ['/'] <tokname>
         | <echar\{'<'}>
 */
-static int prs_token(struct guitextbox *tbox, struct textlines_iterator *txtit,
+static int prs_token(struct GuiTextbox *tbox, struct TextLines_iterator *txtit,
         char *strtoken, int maxlen)
 {
     int ch;
@@ -229,7 +229,7 @@ static int prs_token(struct guitextbox *tbox, struct textlines_iterator *txtit,
     <tokname> ::=
         { <echar\{'<','>'}> * } '>'
 */
-static int prs_tokname(struct guitextbox *tbox, struct textlines_iterator *txtit,
+static int prs_tokname(struct GuiTextbox *tbox, struct TextLines_iterator *txtit,
         char *strtoken, int maxlen)
 {
     int ch;

@@ -1,6 +1,8 @@
 #include "battery.h"
 #include "gui.h"
 
+#include <string.h>
+
 /* Scheduler includes. */
 #include "task.h"
 
@@ -120,4 +122,56 @@ void BatteryTask(void *pvParameters)
         /* wait 4 seconds */
         vTaskDelay( ( TickType_t ) 4000 / portTICK_PERIOD_MS );
     }
+}
+
+/* drawing callback for battery */
+int gui_battery_draw_cb(u8g_t *u8g, struct GuiWindow *win,
+                struct GuiPoint abspos)
+{
+    struct GuiBattery *batt = (struct GuiBattery*)win;
+    int percent = batt->percent;
+
+    if (percent < 0) { percent = 0; }
+    if (percent > 100) { percent = 100; }
+
+    u8g_SetDefaultMidColor(u8g);
+    u8g_DrawBox(u8g, abspos.x, abspos.y, percent / (100/batt->win.size.x), batt->win.size.y);
+
+    u8g_SetDefaultForegroundColor(u8g);
+    u8g_DrawFrame(u8g, abspos.x, abspos.y, batt->win.size.x, batt->win.size.y);
+    u8g_DrawFrame(u8g, abspos.x+batt->win.size.x, abspos.y+2, 2, 4);
+
+    u8g_SetFont(u8g, u8g_font_helvR08);
+    char s[12];
+#if 0
+    /* print percents */
+    int k = itostr(s, 16, vbat_percent);
+    s[k] = '%';
+    s[k+1] = '\0';
+#else
+    /* print voltage */
+    int vbat100 = batt->vbat_measured / 10;
+    if ((batt->vbat_measured % 10) >= 5) { vbat100 += 1; }
+    int k = itostr(s, 16, vbat100);
+    memmove(s+2, s+1, k-1);
+    s[1] = '.';
+    s[k+1] = 'V';
+    s[k+2] = batt->batt_state;
+    s[k+3] = '\0';
+#endif
+    u8g_DrawStr(u8g,  abspos.x+batt->win.size.x+4, abspos.y+batt->win.size.y, s);
+
+    return 0;
+}
+
+
+/* allocate battery graphical symbol */
+struct GuiBattery *gui_battery_alloc(void)
+{
+    struct GuiBattery *b = pvPortMalloc(sizeof(struct GuiBattery));
+    if (b) {
+        memset(b, 0, sizeof(struct GuiBattery));
+        b->win.draw_window_fn = gui_battery_draw_cb;
+    }
+    return b;
 }

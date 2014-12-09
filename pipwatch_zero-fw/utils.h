@@ -20,11 +20,18 @@ char *newstrn(const char *buf, int n);
 /* Trim string by up to n characters from the end. */
 char *strtrimn(char *buf, int n);
 
+/* integer minima */
+static inline int simin(int a, int b)
+{ return (a < b) ? a : b; }
+
+/* integer minima */
+static inline unsigned int uimin(unsigned int a, unsigned int b)
+{ return (a < b) ? a : b; }
 
 /* -------------------------------------------------------------------------------- */
 
 /* Array of text lines */
-struct textlines {
+struct TextLines {
     /* array of text lines */
     char **textlines;
     /* number of lines */
@@ -32,19 +39,20 @@ struct textlines {
 };
 
 /* initialize textlines */
-void textlines_init(struct textlines *txt, int nlines);
+void textlines_init(struct TextLines *txt, int nlines);
 
-/* Append a new line to the textline, scrolling the textlines up if needed
- * The total number of lines does not exceed nlines. */
-void textlines_scroll_add(struct textlines *tbox, char *str);
+/* Append a new line to the textline, scrolling the textlines up if needed.
+ * The total number of lines does not exceed nlines. 
+ * The string str is NOT copyed! */
+void textlines_scroll_add(struct TextLines *tbox, char *str);
 
 
 /* Iterator to characters in textlines
  * Rules: NULL lines are skipped entirely.
  *  All other characters including termitating '\0's are passed through.
  */
-struct textlines_iterator {
-    const struct textlines *txt;
+struct TextLines_iterator {
+    const struct TextLines *txt;
     /* current line */
     int k;
     /* current character on the line */
@@ -53,13 +61,13 @@ struct textlines_iterator {
 
 
 /* initialize textline iterator to the beginning */
-void textlines_iterator_init(struct textlines_iterator *it, const struct textlines *txt);
+void textlines_iterator_init(struct TextLines_iterator *it, const struct TextLines *txt);
 
 /* return the current character, or -1 if at the end */
-int textlines_iterator_peekc(struct textlines_iterator *it);
+int textlines_iterator_peekc(struct TextLines_iterator *it);
 
 /* advance to the next character; return -1 if at the end */
-int textlines_iterator_next(struct textlines_iterator *it);
+int textlines_iterator_next(struct TextLines_iterator *it);
 
 
 

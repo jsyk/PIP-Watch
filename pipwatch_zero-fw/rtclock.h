@@ -4,9 +4,9 @@
 #include "gui_window.h"
 
 
-struct guiclockface {
+struct GuiClockface {
     /* the window base class; MUST BE THE FIRST ELEMENT */
-    struct guiwindow win;
+    struct GuiWindow win;
 
     /* the time to show */
     unsigned int hours;
@@ -19,11 +19,11 @@ struct guiclockface {
 };
 
 /* callback to draw the clock face */
-int gui_draw_clock_face_cb(u8g_t *u8g, struct guiwindow *win,
-                struct guipoint abspos);
+int gui_draw_clock_face_cb(u8g_t *u8g, struct GuiWindow *win,
+                struct GuiPoint abspos);
 
 /* allocate new guiclockface */
-struct guiclockface *gui_clockface_alloc(void);
+struct GuiClockface *gui_clockface_alloc(void);
 
 
 /* ----------------------------------------------------------------- */
